@@ -1,6 +1,8 @@
 import express from 'express';
 import swaggerUi from 'swagger-ui-express';
 import { openapi } from './openapi.js';
+import { FINDINGS, NODE_STATUSES, graphError, okId, questionsError, timelineError } from './contracts.js';
+import { edgeMetadata, formatResearchDoc, linkedId, nodeMetadata, parseResearchDoc, reciprocalError } from './research-doc.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA = path.join(__dirname, 'research_data');
 const NODES = path.join(DATA, 'nodes');
+const EDGES = path.join(DATA, 'edges');
 const CTX = path.join(DATA, 'context');
 const GRAPH = path.join(DATA, 'graph.json');
 const TIMELINE = path.join(DATA, 'timeline.json');
@@ -20,6 +23,7 @@ const REPORTS = path.join(DATA, 'change-reports');
 // while the server is still running.
 function ensureDirs() {
   fs.mkdirSync(NODES, { recursive: true });
+  fs.mkdirSync(EDGES, { recursive: true });
   fs.mkdirSync(CTX, { recursive: true });
   fs.mkdirSync(REPORTS, { recursive: true });
   if (!fs.existsSync(CONFIG)) {
@@ -29,18 +33,86 @@ function ensureDirs() {
 ensureDirs();
 
 const LAYERS = { 1: 'layer1_topic.txt', 2: 'layer2_objective.txt', 3: 'layer3_research_question.txt' };
-const okId = (id) => typeof id === 'string' && /^[\w-]{1,80}$/.test(id);
 const read = (f, fallback = '') => (fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : fallback);
-const normalizeGraph = (graph) => ({
-  nodes: Array.isArray(graph?.nodes) ? graph.nodes : [],
-  edges: Array.isArray(graph?.edges) ? graph.edges : [],
-  revision: Number.isInteger(graph?.revision) ? graph.revision : 0,
+const readDoc = (file) => parseResearchDoc(read(file));
+const writeDoc = (file, metadata, body) => fs.writeFileSync(file, formatResearchDoc(metadata, body));
+const graphLayout = (graph, revision) => ({
+  nodes: graph.nodes.map(({ id, position }) => ({ id, position })),
+  revision,
 });
-const readGraph = () => normalizeGraph(JSON.parse(read(GRAPH, '{"nodes":[],"edges":[],"revision":0}')));
+
+function persistEntities(graph) {
+  const nodeIds = new Set(graph.nodes.map((node) => node.id));
+  const edgeIds = new Set(graph.edges.map((edge) => edge.id));
+  for (const node of graph.nodes) {
+    const file = path.join(NODES, node.id + '.md');
+    writeDoc(file, nodeMetadata(node, graph.edges), readDoc(file).body);
+  }
+  for (const edge of graph.edges) {
+    const file = path.join(EDGES, edge.id + '.md');
+    const current = readDoc(file);
+    const body = typeof edge.data?.note === 'string' ? edge.data.note : current.body;
+    writeDoc(file, edgeMetadata(edge), body);
+  }
+  for (const file of fs.readdirSync(EDGES).filter((name) => name.endsWith('.md'))) {
+    if (!edgeIds.has(file.slice(0, -3))) fs.rmSync(path.join(EDGES, file));
+  }
+  for (const file of fs.readdirSync(NODES).filter((name) => name.endsWith('.md'))) {
+    if (!nodeIds.has(file.slice(0, -3))) fs.rmSync(path.join(NODES, file));
+  }
+}
+
+function hydrateGraph(layout) {
+  const documents = (layout.nodes || []).map(({ id, position }) => {
+    const { metadata } = readDoc(path.join(NODES, id + '.md'));
+    const { id: ignored, from, to, ...data } = metadata;
+    return { id, position, metadata, data };
+  });
+  const edges = fs.readdirSync(EDGES)
+    .filter((name) => name.endsWith('.md'))
+    .map((name) => {
+      const id = name.slice(0, -3);
+      const { metadata, body } = readDoc(path.join(EDGES, name));
+      const { id: ignored, from, to, ...data } = metadata;
+      return {
+        id,
+        source: linkedId(from, 'nodes'),
+        target: linkedId(to, 'nodes'),
+        data: { ...data, ...(body.trim() ? { note: body } : {}) },
+      };
+    });
+  const linkError = reciprocalError(documents, edges);
+  if (linkError) throw new Error(`BROKEN_RESEARCH_LINK: ${linkError}`);
+  const graph = {
+    nodes: documents.map(({ id, position, data }) => ({ id, position, data })),
+    edges,
+    revision: Number.isInteger(layout.revision) ? layout.revision : 0,
+  };
+  const error = graphError(graph);
+  if (error) throw new Error(`BROKEN_RESEARCH_DATA: ${error}`);
+  return graph;
+}
+
+function readGraph() {
+  const stored = JSON.parse(read(GRAPH, '{"nodes":[],"revision":0}'));
+  if ((stored.nodes || []).some((node) => node.data) || (stored.edges || []).some((edge) => edge.source)) {
+    const legacy = {
+      nodes: Array.isArray(stored.nodes) ? stored.nodes : [],
+      edges: Array.isArray(stored.edges) ? stored.edges : [],
+      revision: Number.isInteger(stored.revision) ? stored.revision : 0,
+    };
+    persistEntities(legacy);
+    fs.writeFileSync(GRAPH, JSON.stringify(graphLayout(legacy, legacy.revision), null, 2));
+    return legacy;
+  }
+  return hydrateGraph(stored);
+}
+
 const writeGraph = (graph) => {
-  const next = { ...normalizeGraph(graph), revision: normalizeGraph(graph).revision + 1 };
-  fs.writeFileSync(GRAPH, JSON.stringify(next, null, 2));
-  return next;
+  const revision = (Number.isInteger(graph.revision) ? graph.revision : 0) + 1;
+  persistEntities(graph);
+  fs.writeFileSync(GRAPH, JSON.stringify(graphLayout(graph, revision), null, 2));
+  return { ...graph, revision };
 };
 const newId = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
@@ -55,7 +127,8 @@ app.get('/api/graph', (req, res) => {
 
 app.put('/api/graph', (req, res) => {
   const { nodes, edges, expectedRevision } = req.body || {};
-  if (!Array.isArray(nodes) || !Array.isArray(edges)) return res.status(400).json({ error: 'bad graph' });
+  const error = graphError({ nodes, edges });
+  if (error) return res.status(400).json({ error });
   const current = readGraph();
   if (Number.isInteger(expectedRevision) && expectedRevision !== current.revision)
     return res.status(409).json({ error: 'GRAPH_CONFLICT', graph: current });
@@ -91,7 +164,7 @@ app.post('/api/research/nodes', (req, res) => {
     position: body.position || { x: 80 + graph.nodes.length * 40, y: 420 },
     data: {
       title: title.slice(0, 180),
-      status: ['active', 'merged', 'dead'].includes(body.status) ? body.status : 'active',
+      status: NODE_STATUSES.includes(body.status) ? body.status : 'active',
       outcome: typeof body.outcome === 'string' ? body.outcome : '',
       ...(typeof body.role === 'string' ? { role: body.role } : {}),
       ...(typeof body.kind === 'string' ? { kind: body.kind } : {}),
@@ -106,8 +179,8 @@ app.post('/api/research/nodes', (req, res) => {
     edge = { id: newId('e'), source: body.parentId, target: id, data: { kind: 'step' } };
     graph.edges.push(edge);
   }
-  writeGraph(graph);
   fs.writeFileSync(path.join(NODES, id + '.md'), typeof body.content === 'string' ? body.content : `# ${title}\n`);
+  writeGraph(graph);
   res.status(201).json({ node, edge, floating: !edge });
 });
 
@@ -128,7 +201,8 @@ app.post('/api/research/log', (req, res) => {
   if (!okId(nodeId) || typeof note !== 'string' || !note.trim()) return res.status(400).json({ error: 'nodeId and note are required' });
   const file = path.join(NODES, nodeId + '.md');
   if (!fs.existsSync(file)) return res.status(404).json({ error: 'node not found' });
-  fs.appendFileSync(file, `\n\n## ${date}\n${note.trim()}\n`);
+  const document = readDoc(file);
+  writeDoc(file, document.metadata, `${document.body.trimEnd()}\n\n## ${date}\n${note.trim()}\n`);
   res.json({ ok: true, nodeId });
 });
 
@@ -158,7 +232,7 @@ app.post('/api/research/merge', (req, res) => {
     ...(typeof title === 'string' && title.trim() ? { title: title.trim().slice(0, 180) } : {}),
     ...(typeof outcome === 'string' ? { outcome } : {}),
     ...(typeof rq === 'string' && rq ? { rq } : {}),
-    ...(['positive', 'negative', 'neutral'].includes(finding) ? { finding } : {}),
+    ...(FINDINGS.includes(finding) ? { finding } : {}),
     ...(typeof contribution === 'string' ? { contribution } : {}),
   };
   graph.edges = graph.edges.map((edge) => edge.source === nodeId ? { ...edge, data: { ...edge.data, kind: 'merge' } } : edge);
@@ -179,7 +253,8 @@ app.get('/api/timeline', (req, res) => {
 
 app.put('/api/timeline', (req, res) => {
   const { months } = req.body || {};
-  if (!Array.isArray(months)) return res.status(400).json({ error: 'bad timeline' });
+  const error = timelineError({ months });
+  if (error) return res.status(400).json({ error });
   fs.writeFileSync(TIMELINE, JSON.stringify({ months }, null, 2));
   res.json({ ok: true });
 });
@@ -190,7 +265,8 @@ app.get('/api/questions', (req, res) => {
 
 app.put('/api/questions', (req, res) => {
   const { questions } = req.body || {};
-  if (!Array.isArray(questions)) return res.status(400).json({ error: 'bad questions' });
+  const error = questionsError({ questions });
+  if (error) return res.status(400).json({ error });
   fs.writeFileSync(QUESTIONS, JSON.stringify({ questions }, null, 2));
   // Keep the plain-text compass file in sync so the top bar and file-reading
   // skills (research-export) still see current RQ text. questions.json is the
@@ -204,14 +280,15 @@ app.put('/api/questions', (req, res) => {
 
 app.get('/api/node/:id', (req, res) => {
   if (!okId(req.params.id)) return res.status(400).json({ error: 'bad id' });
-  res.json({ content: read(path.join(NODES, req.params.id + '.md')) });
+  res.json({ content: readDoc(path.join(NODES, req.params.id + '.md')).body });
 });
 
 app.put('/api/node/:id', (req, res) => {
   if (!okId(req.params.id)) return res.status(400).json({ error: 'bad id' });
   const { content } = req.body || {};
   if (typeof content !== 'string') return res.status(400).json({ error: 'bad content' });
-  fs.writeFileSync(path.join(NODES, req.params.id + '.md'), content);
+  const file = path.join(NODES, req.params.id + '.md');
+  writeDoc(file, readDoc(file).metadata, content);
   res.json({ ok: true });
 });
 
@@ -250,7 +327,7 @@ app.post('/api/change-reports', (req, res) => {
 app.post('/api/summarize', async (req, res) => {
   const { nodeId } = req.body || {};
   if (!okId(nodeId)) return res.status(400).json({ error: 'bad id' });
-  const notes = read(path.join(NODES, nodeId + '.md'));
+  const notes = readDoc(path.join(NODES, nodeId + '.md')).body;
   let cfg = {};
   try { cfg = JSON.parse(read(CONFIG, '{}')); } catch { /* fall back to defaults */ }
   const prompt =
@@ -282,6 +359,11 @@ if (fs.existsSync(dist)) {
     next();
   });
 }
+
+app.use((error, req, res, next) => {
+  if (!req.path.startsWith('/api')) return next(error);
+  res.status(500).json({ error: error.message || 'RESEARCH_DATA_ERROR' });
+});
 
 const PORT = Number(process.env.PORT || 3001);
 app.listen(PORT, () => console.log(`Research Navigator API on http://localhost:${PORT}`));

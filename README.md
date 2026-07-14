@@ -8,6 +8,8 @@ Your research lives as a **git-style branching graph**: objectives are lanes, ex
 
 This checkout ships with a demo roadmap (see `research_data/`) purely so the graph isn't empty the first time you open it. It's local-only and untracked; see [Using this as a template](#using-this-as-a-template) for how to start your own project.
 
+Developer documentation: [architecture](docs/ARCHITECTURE.md), [development contracts and feature map](docs/DEVELOPMENT.md), and [HTTP API](docs/API.md).
+
 ## Quick start
 
 Requires Node.js 18+.
@@ -23,7 +25,7 @@ Production-ish: `npm run build && npm start` → everything on http://localhost:
 
 ## How you use it
 
-- **Double-click the canvas** → new experiment node. Click a node → sidebar with its Markdown lab notes (autosaves, 1s debounce).
+- **Double-click the canvas** → new Work node. Choose Experiment, Decision, Synthesis, or Note / dump when its meaning is more specific. See [the research workflow](docs/RESEARCH_WORKFLOW.md).
 - **Drag between node handles** → connect steps.
 - **Tags** → in the sidebar, type a tag and hit Enter (e.g. a teammate's name). Tags show as small pills on the node card, and group the "active branches" section in a `research-export` snapshot — the closest thing this app has to task assignment.
 - **Mark dead end** → branch grays out with strikethrough. It stays on the map: the record of what you already tried is half the value.
@@ -32,34 +34,36 @@ Production-ish: `npm run build && npm start` → everything on http://localhost:
 - **Objectives have a "done when"** → click an objective node and set its exit criterion — the falsifiable line that stops the endless fine-tuning loop ("pipeline runs end-to-end on clean + corrupted sets", not "beats SOTA"). Toggle **Objective met** when it's satisfied.
 - **Synthesis nodes** → mark a node as a *synthesis node* (dashed, in the sidebar) when its job is writing analysis that connects several experiments to a question, rather than running code. These are the "stop and think" checkpoints that keep synthesis from being dumped into the final month.
 - **Questions view** (top-bar tab) → the destination board. Each RQ shows its status (open / partial / answered), a **living answer** you write and re-write as evidence lands, and the list of experiments feeding it (with their positive/negative/mixed findings). Click any evidence to jump to it on the Map.
+- **Compass objectives** → each objective opens in a detail modal for editing its wording, exit criterion, and completion state. Add Objective creates a new objective anchor; “Show on map” is an explicit secondary action.
+- **Research-question anchors** → every RQ has its own Markdown-backed node and can receive graph links independently from its objective. Question wording remains owned by Compass.
 - The top bar always shows your compass (topic / objectives / questions). **The app never lets AI rewrite these, or your RQ answers** — only you move the compass and only you write the conclusions.
-- If you filled in a timeline, a bar under the top bar shows every month/milestone. Milestones have no manual checkbox — a milestone completes automatically once every node linked to it is merged. Click a milestone to jump to its linked node.
+- The collapsible timeline panel on the left shows every month/milestone. Milestones have no manual checkbox — a milestone completes automatically once every linked node is merged. Clicking a linked milestone focuses all of its nodes and dims unrelated work; click the filter chip or empty canvas to clear the focus.
 
 ## Data format
 
 ```
 research_data/
   config.json          { "ollamaUrl": "...", "ollamaModel": "llama3.2" }
-  graph.json           nodes + edges (React-Flow-compatible)
+  graph.json           UI positions + revision
   questions.json        research questions + living answers
   timeline.json         months + milestones (optional — absent if you skipped it)
   context/
     layer1_topic.txt
     layer2_objective.txt
     layer3_research_question.txt   (derived from questions.json — kept in sync)
-  nodes/<nodeId>.md    free-form lab notes, one per node
+  nodes/<nodeId>.md    node metadata + free-form notes
+  edges/<edgeId>.md    endpoints + relationship meaning
 ```
 
-Node: `{ id, position, data: { title, status: "active"|"merged"|"dead", outcome, anchor?, tags?, kind?: "synthesis", rq?, finding?: "positive"|"negative"|"neutral", contribution?, exitCriteria?, met? } }`.
-Edge: `{ id, source, target, data: { kind: "step"|"merge" } }`.
-Questions: `{ questions: [{ id: "RQ1", text, obj, status: "open"|"partial"|"answered", answer }] }`. A question's **evidence is derived**, not stored: it's every node whose `data.rq` equals the question's `id`. So linking a node to an RQ (via merge or the sidebar) is the only step — nothing to keep in sync, and deleting a node removes it from the RQ automatically.
+Node and edge Markdown use hidden YAML frontmatter with Obsidian-compatible wikilinks. The API hydrates them into React Flow nodes and edges; `graph.json` is not the source of research meaning.
+Questions: `{ questions: [{ id: "RQ1", text, obj, status: "open"|"partial"|"answered", answer }] }`. A question's **evidence is derived**, not stored: it is every `merged` node whose `data.rq` equals the question's `id`. Linking an active node records intent; merging it turns the result into evidence.
 Timeline: `{ months: [{ id, title, milestones: [{ id, title, obj: number, nodeIds: string[] }] }] }` — `obj` is the 0-indexed objective (`-1` = general); a milestone is "done" once every node in `nodeIds` is `merged`.
 
-Start a new research project by deleting (or archiving) `research_data/graph.json` — the wizard reappears. Deleting a node from the UI also deletes its `.md` file; nothing else does.
+Start a new research project by archiving `research_data/` and creating an empty replacement — removing only `graph.json` would leave the old node and edge documents behind. Deleting a node from the UI also deletes its `.md` file; nothing else does.
 
 ## Use with coding agents
 
-The repo doubles as an agent plugin. `.claude/skills/` ships four skills that any Claude Code session in this repo picks up automatically:
+The repo doubles as an agent workspace. `.agents/skills/` ships four research skills used by compatible coding agents:
 
 - **research-init** — the agent interviews you (one question at a time, it never plans *for* you) and scaffolds `research_data/` in the exact format above: objectives with exit criteria, questions, first tasks, timeline. An alternative to the UI wizard.
 - **research-log** — tell the agent "rolling-memory summary got +12pt over truncation, that's my main RQ1 evidence" and it appends dated notes, branches experiments, marks dead ends, tags nodes, links milestones, and **merges with synthesis** — recording which RQ the result feeds and whether the finding is positive/negative/mixed. Also marks objectives met and updates RQ answers.
@@ -105,7 +109,7 @@ It writes its JSON artifact under your ignored `research_data/artifacts/` direct
 This repo is meant to be reused: one checkout per research project, each with its own `research_data/`.
 
 - **Starting a new project:** don't just `git clone` this repo for real work — a plain clone keeps `origin` pointed at this same remote, so an accidental `git push` from inside a project lands in the template repo. Instead, either click **Use this template** on GitHub (makes an independent repo), or `git clone <url> my-project && cd my-project && git remote remove origin` before you begin.
-- **Starting the roadmap itself:** delete `research_data/` (or just `graph.json`) and run `npm run dev` — the init wizard appears. If you're working with a coding agent instead of the UI, ask it to use the `research-init` skill (see below).
+- **Starting the roadmap itself:** archive `research_data/`, create an empty replacement, and run `npm run dev` — the init wizard appears. If you're working with a coding agent instead of the UI, ask it to use the `research-init` skill (see below).
 - **Developing the app itself** (new features, UI changes, new skills): work directly in this checkout. It's the one place `research_data/` content doesn't matter — feel free to reset it to the demo data any time.
 
 ## Stack

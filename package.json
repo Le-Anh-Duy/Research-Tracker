@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "concurrently -k \"node server.js\" \"vite\"",
     "build": "vite build",
+    "test": "node scripts/contracts.test.mjs && node scripts/research-doc.test.mjs && node scripts/roadmap.test.mjs && node scripts/timelineStatus.test.mjs",
     "start": "node server.js"
   },
   "dependencies": {

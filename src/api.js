@@ -30,18 +30,3 @@ export const summarize = (nodeId) =>
     body: JSON.stringify({ nodeId }),
   }).then(json);
 export const researchState = () => fetch('/api/research/state').then(json);
-export const createResearchNode = (node) => fetch('/api/research/nodes', {
-  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(node),
-}).then(json);
-export const createResearchLink = (link) => fetch('/api/research/links', {
-  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(link),
-}).then(json);
-export const appendResearchLog = (entry) => fetch('/api/research/log', {
-  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry),
-}).then(json);
-export const markResearchDeadEnd = (entry) => fetch('/api/research/dead-end', {
-  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry),
-}).then(json);
-export const mergeResearchNode = (entry) => fetch('/api/research/merge', {
-  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry),
-}).then(json);

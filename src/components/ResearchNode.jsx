@@ -10,10 +10,12 @@ export default function ResearchNode({ data }) {
     'rnode',
     's-' + data.status,
     data.anchor ? 'anchor' : '',
+    data.role === 'research-question' ? 'question' : '',
     isSynthesis ? 'synthesis' : '',
     isModule ? 'module' : '',
     hasCustomColor ? 'custom-color' : '',
     data.isSelected ? 'sel' : '',
+    data.focusState,
   ]
     .filter(Boolean)
     .join(' ');

@@ -2,6 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import * as api from '../api';
 
 const NODE_COLORS = ['#d97757', '#176b78', '#4f7a4d', '#9a7d3e', '#8b5e83', '#6f6a60'];
+const ROLES = [
+  ['work', 'Work'],
+  ['experiment', 'Experiment'],
+  ['decision', 'Decision'],
+  ['synthesis', 'Synthesis'],
+  ['note', 'Note / dump'],
+];
 
 export default function Sidebar({
   node,
@@ -17,228 +24,192 @@ export default function Sidebar({
 }) {
   const [md, setMd] = useState(null);
   const [savedAt, setSavedAt] = useState(null);
+  const [saveError, setSaveError] = useState('');
   const [tagDraft, setTagDraft] = useState('');
   const timer = useRef(null);
   const mdRef = useRef(null);
   const dirtyRef = useRef(false);
 
   useEffect(() => {
-    if (!node) return;
-    api.getNode(node.id).then((r) => {
-      setMd(r.content);
-      mdRef.current = r.content;
-    });
+    if (!node) return undefined;
+    setMd(null);
+    setSaveError('');
+    api.getNode(node.id)
+      .then((response) => {
+        setMd(response.content);
+        mdRef.current = response.content;
+      })
+      .catch((error) => {
+        setMd('');
+        mdRef.current = '';
+        setSaveError(`Could not load notes: ${error.message}`);
+      });
     return () => {
       clearTimeout(timer.current);
       if (dirtyRef.current && mdRef.current != null) api.putNode(node.id, mdRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node?.id]);
 
   const isEdge = Boolean(edge);
   const isAnchor = Boolean(node?.data?.anchor);
-  const isSynthesis = node?.data?.kind === 'synthesis';
+  const role = node?.data?.role || (node?.data?.kind === 'synthesis' ? 'synthesis' : node?.data?.kind === 'module' ? 'module' : 'experiment');
+  const isSynthesis = role === 'synthesis';
+  const isQuestion = role === 'research-question';
+  const isObjective = role === 'objective';
   const tags = node?.data?.tags || [];
 
   const onMdChange = (value) => {
     setMd(value);
     mdRef.current = value;
     dirtyRef.current = true;
+    setSaveError('');
     clearTimeout(timer.current);
     timer.current = setTimeout(() => {
-      api.putNode(node.id, value).then(() => {
-        dirtyRef.current = false;
-        setSavedAt(new Date());
-      });
+      api.putNode(node.id, value)
+        .then(() => {
+          dirtyRef.current = false;
+          setSavedAt(new Date());
+        })
+        .catch((error) => setSaveError(`Notes not saved: ${error.message}`));
     }, 1000);
   };
 
   const addTag = () => {
-    const t = tagDraft.trim();
-    if (t && !tags.includes(t)) onPatch({ tags: [...tags, t] });
+    const tag = tagDraft.trim();
+    if (tag && !tags.includes(tag)) onPatch({ tags: [...tags, tag] });
     setTagDraft('');
   };
 
-  const removeTag = (t) => onPatch({ tags: tags.filter((x) => x !== t) });
-
-  const changeRole = (role) =>
-    onPatch({ role: role || undefined, kind: role === 'synthesis' ? 'synthesis' : role === 'module' ? 'module' : 'experiment' });
+  const changeRole = (nextRole) => onPatch({ role: nextRole, kind: nextRole === 'synthesis' ? 'synthesis' : undefined });
 
   const handleDeleteNode = () => {
-    if (
-      window.confirm(
-        `Delete "${node.data.title}"? Its notes are deleted too - this can't be undone.\n\n` +
-          'For an abandoned experiment, "Mark dead end" is usually better: it keeps the record instead of erasing it.'
-      )
-    ) {
-      onDelete();
-    }
+    if (window.confirm(`Delete "${node.data.title}" and its notes? Undo is available until this page is reloaded.\n\nUse "Mark dead end" instead when the work was a real attempt.`)) onDelete();
   };
+
+  if (isEdge) {
+    return (
+      <aside className="sidebar">
+        <SidebarHeader title="Link" onClose={onClose} />
+        <div className="field">
+          <label>Connection</label>
+          <input type="text" readOnly value={`${nodesById[edge.source]?.data?.title || edge.source} → ${nodesById[edge.target]?.data?.title || edge.target}`} />
+        </div>
+        <div className="field log-wrap">
+          <label>Why this connection exists</label>
+          <textarea rows={5} value={edge.data?.note || ''} onChange={(event) => onPatchEdge({ note: event.target.value })} placeholder="Dependency, evidence flow, or reasoning behind this link…" />
+        </div>
+        <div className="sidebar-actions">
+          <button className="btn primary" onClick={onClose}>Done</button>
+          <button className="btn danger" onClick={onDeleteEdge}>Delete link</button>
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-head">
-        <h2>{isEdge ? 'Link' : isAnchor ? 'Objective' : isSynthesis ? 'Synthesis' : 'Node log'}</h2>
-        <button className="sidebar-close" onClick={onClose} title="Close">
-          x
-        </button>
+      <SidebarHeader title={isQuestion ? 'Research question' : isObjective ? 'Objective' : role === 'project' ? 'Project' : isSynthesis ? 'Synthesis' : 'Research work'} onClose={onClose} />
+
+      <div className="field">
+        <label>Title</label>
+        {isAnchor
+          ? <><div className="structural-title">{node.data.title}</div><small className="field-help">Edit this structural anchor in Compass.</small></>
+          : <input type="text" value={node.data.title} onChange={(event) => onPatch({ title: event.target.value })} />}
       </div>
 
-      {isEdge ? (
-        <>
-          <div className="field">
-            <label>Link</label>
-            <input
-              type="text"
-              readOnly
-              value={`${nodesById[edge.source]?.data?.title || edge.source} -> ${
-                nodesById[edge.target]?.data?.title || edge.target
-              }`}
-            />
-          </div>
-          <div className="field">
-            <label>Explain this link</label>
-            <textarea
-              rows={3}
-              value={edge.data?.note || ''}
-              onChange={(e) => onPatchEdge({ note: e.target.value })}
-              placeholder="Why does this link exist? What does it mean?"
-            />
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="field">
-            <label>Title</label>
-            <input type="text" value={node.data.title} onChange={(e) => onPatch({ title: e.target.value })} />
-          </div>
+      {!isAnchor && (
+        <div className="field">
+          <label>Type</label>
+          <select value={role} onChange={(event) => changeRole(event.target.value)}>
+            {!ROLES.some(([value]) => value === role) && <option value={role}>{role} (legacy)</option>}
+            {ROLES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+        </div>
+      )}
 
-          <div className="field">
-            <label>Node color</label>
-            <div className="node-color-row">
-              {NODE_COLORS.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  className={'node-color-swatch' + (node.data.color === color ? ' selected' : '')}
-                  style={{ background: color }}
-                  aria-label={`Use ${color}`}
-                  title={color}
-                  onClick={() => onPatch({ color })}
-                />
-              ))}
-              <input
-                className="node-color-picker"
-                type="color"
-                value={node.data.color || '#faf9f5'}
-                aria-label="Choose custom node color"
-                title="Choose custom color"
-                onChange={(e) => onPatch({ color: e.target.value })}
-              />
-              {node.data.color && (
-                <button className="btn ghost node-color-clear" type="button" onClick={() => onPatch({ color: undefined })}>
-                  Clear
-                </button>
-              )}
-            </div>
-          </div>
+      {isObjective && (
+        <div className="field objective-done">
+          <label>Done when</label>
+          <textarea rows={2} value={node.data.exitCriteria || ''} onChange={(event) => onPatch({ exitCriteria: event.target.value })} placeholder="A falsifiable exit criterion for this objective" />
+          <button className={'met-toggle' + (node.data.met ? ' on' : '')} onClick={() => onPatch({ met: !node.data.met })}>
+            {node.data.met ? 'Objective completed' : 'Mark objective completed'}
+          </button>
+        </div>
+      )}
 
-          {isAnchor && (
-            <div className="field">
-              <label>Definition of done - the exit criterion that stops the trial-and-error loop</label>
-              <textarea
-                rows={2}
-                value={node.data.exitCriteria || ''}
-                onChange={(e) => onPatch({ exitCriteria: e.target.value })}
-                placeholder="e.g. pipeline runs end-to-end, DINO boxes mapped into attention, no crash - not 'beats SOTA'"
-              />
-              <button
-                className={'met-toggle' + (node.data.met ? ' on' : '')}
-                onClick={() => onPatch({ met: !node.data.met })}
-              >
-                {node.data.met ? 'Objective met' : 'Mark objective met'}
-              </button>
-            </div>
-          )}
+      <div className="field log-wrap">
+        <label>{isSynthesis ? 'Synthesis notes' : 'Lab notes'}</label>
+        <small className="field-help">Markdown · {node.id}.md · autosaves after 1 second</small>
+        {md === null ? (
+          <div className="save-note">Loading notes…</div>
+        ) : (
+          <textarea
+            className="log"
+            value={md}
+            onChange={(event) => onMdChange(event.target.value)}
+            placeholder={isSynthesis
+              ? 'Compare the linked evidence and record what it says about the research question…'
+              : 'Record assumptions, commands, metrics, observations, failures, and next steps…'}
+          />
+        )}
+        {saveError && <div className="save-error">{saveError}</div>}
+        {!saveError && savedAt && <div className="save-note">Saved {savedAt.toLocaleTimeString()}</div>}
+      </div>
 
-          {!isAnchor && (
-            <div className="field">
-              <label>Role</label>
-              <select value={node.data.role || (isSynthesis ? 'synthesis' : node.data.kind === 'module' ? 'module' : 'experiment')} onChange={(e) => changeRole(e.target.value)}>
-                <option value="experiment">Experiment</option>
-                <option value="milestone">Milestone</option>
-                <option value="module">Module</option>
-                <option value="synthesis">Synthesis</option>
-                <option value="decision">Decision</option>
-                <option value="literature">Literature</option>
-                <option value="analysis">Analysis</option>
-              </select>
-            </div>
-          )}
+      <div className="sidebar-actions">
+        {!isAnchor && node.data.status === 'active' && (
+          <>
+            <button className="btn primary" onClick={onMerge}>Merge result</button>
+            <button className="btn danger" onClick={() => onPatch({ status: 'dead' })}>Mark dead end</button>
+          </>
+        )}
+        {!isAnchor && node.data.status === 'dead' && <button className="btn" onClick={() => onPatch({ status: 'active' })}>Revive branch</button>}
+        {!isAnchor && node.data.status === 'merged' && <button className="btn ghost" onClick={() => onPatch({ status: 'active' })}>Reopen</button>}
+      </div>
 
+      <details className="sidebar-details" open={Boolean(node.data.rq || tags.length || node.data.color)}>
+        <summary>{isAnchor ? 'Metadata & appearance' : 'Evidence, tags & appearance'}</summary>
+        <div className="sidebar-details-body">
           <div className="field">
             <label>Tags</label>
             <div className="tag-input-row">
-              {tags.map((t) => (
-                <span key={t} className="tag-chip">
-                  {t}
-                  <button onClick={() => removeTag(t)} aria-label={`remove tag ${t}`}>
-                    x
-                  </button>
+              {tags.map((tag) => (
+                <span key={tag} className="tag-chip">
+                  {tag}
+                  <button type="button" onClick={() => onPatch({ tags: tags.filter((item) => item !== tag) })} aria-label={`Remove tag ${tag}`}>×</button>
                 </span>
               ))}
               <input
                 type="text"
                 value={tagDraft}
-                onChange={(e) => setTagDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
+                onChange={(event) => setTagDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
                     addTag();
                   }
                 }}
                 onBlur={addTag}
-                placeholder={tags.length ? 'add another...' : 'e.g. teammate name, add tag...'}
+                placeholder="Add tag…"
               />
             </div>
           </div>
 
           {!isAnchor && (
-            <div className="field synthesis-field">
-              <button
-                className={'kind-toggle' + (isSynthesis ? ' on' : '')}
-                onClick={() => onPatch({ kind: isSynthesis ? 'experiment' : 'synthesis' })}
-                title="Synthesis nodes are for writing analysis that connects evidence to a question, not for running experiments."
-              >
-                {isSynthesis ? 'Synthesis node' : 'Mark as synthesis node'}
-              </button>
-              <label>Feeds research question</label>
-              <select value={node.data.rq || ''} onChange={(e) => onPatch({ rq: e.target.value || undefined })}>
-                <option value="">-- none --</option>
-                {questions.map((q) => (
-                  <option key={q.id} value={q.id}>
-                    {q.id}: {q.text.slice(0, 50)}
-                  </option>
-                ))}
+            <div className="field evidence-field">
+              <label>Research question</label>
+              <select value={node.data.rq || ''} onChange={(event) => onPatch({ rq: event.target.value || undefined })}>
+                <option value="">Not linked</option>
+                {questions.map((question) => <option key={question.id} value={question.id}>{question.id}: {question.text.slice(0, 50)}</option>)}
               </select>
               {node.data.rq && (
                 <>
-                  <select
-                    className="mt-6"
-                    value={node.data.finding || 'positive'}
-                    onChange={(e) => onPatch({ finding: e.target.value })}
-                  >
-                    <option value="positive">supports the hypothesis</option>
-                    <option value="negative">goes against it</option>
-                    <option value="neutral">mixed / inconclusive</option>
+                  <select className="mt-6" value={node.data.finding || 'positive'} onChange={(event) => onPatch({ finding: event.target.value })}>
+                    <option value="positive">Supports the hypothesis</option>
+                    <option value="negative">Contradicts the hypothesis</option>
+                    <option value="neutral">Mixed or inconclusive</option>
                   </select>
-                  <input
-                    className="mt-6"
-                    type="text"
-                    value={node.data.contribution || ''}
-                    onChange={(e) => onPatch({ contribution: e.target.value })}
-                    placeholder="What this says about the question..."
-                  />
+                  <input className="mt-6" type="text" value={node.data.contribution || ''} onChange={(event) => onPatch({ contribution: event.target.value })} placeholder={`What this contributes to ${node.data.rq}`} />
                 </>
               )}
             </div>
@@ -247,71 +218,33 @@ export default function Sidebar({
           {node.data.outcome && (
             <div className="field">
               <label>Outcome</label>
-              <input type="text" value={node.data.outcome} onChange={(e) => onPatch({ outcome: e.target.value })} />
+              <input type="text" value={node.data.outcome} onChange={(event) => onPatch({ outcome: event.target.value })} />
             </div>
           )}
 
-          <div className="field log-wrap">
-            <label>
-              {isSynthesis ? 'Analysis' : 'Lab notes'} ({node.id}.md - autosaves)
-            </label>
-            {md === null ? (
-              <div className="save-note">loading...</div>
-            ) : (
-              <textarea
-                className="log"
-                value={md}
-                onChange={(e) => onMdChange(e.target.value)}
-                placeholder={
-                  isSynthesis
-                    ? 'Write the analysis: what do the linked experiments, together, say about the question?'
-                    : 'Raw thoughts, results, failures, links, code snippets...'
-                }
-              />
-            )}
+          <div className="field">
+            <label>Color</label>
+            <div className="node-color-row">
+              {NODE_COLORS.map((color) => (
+                <button key={color} type="button" className={'node-color-swatch' + (node.data.color === color ? ' selected' : '')} style={{ background: color }} aria-label={`Use ${color}`} onClick={() => onPatch({ color })} />
+              ))}
+              <input className="node-color-picker" type="color" value={node.data.color || '#faf9f5'} aria-label="Custom node color" onChange={(event) => onPatch({ color: event.target.value })} />
+              {node.data.color && <button className="btn ghost node-color-clear" type="button" onClick={() => onPatch({ color: undefined })}>Clear</button>}
+            </div>
           </div>
-
-          <div className="sidebar-actions">
-            {node.data.status === 'active' && (
-              <>
-                <button className="btn primary" onClick={onMerge}>
-                  Merge & summarize
-                </button>
-                <button className="btn danger" onClick={() => onPatch({ status: 'dead' })}>
-                  Mark dead end
-                </button>
-              </>
-            )}
-            {node.data.status === 'dead' && (
-              <button className="btn" onClick={() => onPatch({ status: 'active' })}>
-                Revive branch
-              </button>
-            )}
-            {node.data.status === 'merged' && (
-              <button className="btn ghost" onClick={() => onPatch({ status: 'active' })}>
-                Reopen
-              </button>
-            )}
-          </div>
-
-          {savedAt && <div className="save-note">saved {savedAt.toLocaleTimeString()}</div>}
-
-          <button className="link-danger" onClick={handleDeleteNode}>
-            Delete node...
-          </button>
-        </>
-      )}
-
-      {isEdge && (
-        <div className="sidebar-actions">
-          <button className="btn primary" onClick={onClose}>
-            Keep link
-          </button>
-          <button className="btn danger" onClick={onDeleteEdge}>
-            Delete link
-          </button>
         </div>
-      )}
+      </details>
+
+      {!isAnchor && <button className="link-danger" onClick={handleDeleteNode}>Delete node…</button>}
     </aside>
+  );
+}
+
+function SidebarHeader({ title, onClose }) {
+  return (
+    <div className="sidebar-head">
+      <h2>{title}</h2>
+      <button className="sidebar-close" onClick={onClose} aria-label="Close details" title="Close">×</button>
+    </div>
   );
 }

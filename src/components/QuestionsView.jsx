@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { isEvidenceFor } from '../roadmap';
 
 // The destination board. Experiments live on the Map; this is where their
 // evidence adds up into an answer. Evidence per RQ is DERIVED from nodes
@@ -25,7 +26,7 @@ export default function QuestionsView({ questions, nodes, objectives, onUpdate, 
           this is where you write, in your own words, what that evidence adds up to.
         </p>
         {questions.map((q) => {
-          const evidence = nodes.filter((n) => n.data.rq === q.id);
+          const evidence = nodes.filter((node) => isEvidenceFor(node, q.id));
           return (
             <div key={q.id} className={'q-card s-' + q.status}>
               <div className="q-head">

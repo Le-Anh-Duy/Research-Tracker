@@ -13,6 +13,7 @@ export default function InitWizard({ onDone }) {
   const [months, setMonths] = useState([]);
   const [connectInitialNodes, setConnectInitialNodes] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState('');
 
   const cleanObjectives = objectives.map((o) => o.trim()).filter(Boolean);
   const cleanQuestions = questions.filter((q) => q.text.trim());
@@ -33,18 +34,24 @@ export default function InitWizard({ onDone }) {
 
   const create = async () => {
     setCreating(true);
-    await onDone({
-      topic: topic.trim(),
-      objectives: cleanObjectives,
-      questions: cleanQuestions.map((q) => ({ text: q.text.trim(), obj: q.obj })),
-      firstTasks: cleanObjectives.map((_, i) => firstTasks[i] || ''),
-      exitCriteria: cleanObjectives.map((_, i) => exitCriteria[i] || ''),
-      months: cleanMonths.map((m) => ({
-        title: m.title,
-        milestones: m.milestones.map((ms) => ({ text: ms.text.trim(), obj: ms.obj })),
-      })),
-      connectInitialNodes,
-    });
+    setCreateError('');
+    try {
+      await onDone({
+        topic: topic.trim(),
+        objectives: cleanObjectives,
+        questions: cleanQuestions.map((q) => ({ text: q.text.trim(), obj: q.obj })),
+        firstTasks: cleanObjectives.map((_, i) => firstTasks[i] || ''),
+        exitCriteria: cleanObjectives.map((_, i) => exitCriteria[i] || ''),
+        months: cleanMonths.map((m) => ({
+          title: m.title,
+          milestones: m.milestones.map((ms) => ({ text: ms.text.trim(), obj: ms.obj })),
+        })),
+        connectInitialNodes,
+      });
+    } catch (error) {
+      setCreateError(error.message);
+      setCreating(false);
+    }
   };
 
   const setList = (setter) => (i, value) =>
@@ -342,6 +349,7 @@ export default function InitWizard({ onDone }) {
           </>
         )}
 
+        {createError && <p className="form-error">Could not create roadmap: {createError}</p>}
         <div className="wizard-actions">
           {step > 0 && (
             <button className="btn ghost" onClick={back} disabled={creating}>

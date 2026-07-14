@@ -2,6 +2,8 @@
 
 The API is a local HTTP API for the Research Navigator app. It writes directly to `research_data/` and has no authentication. Use it only from a trusted local agent or local script.
 
+Data shapes and cross-file invariants are documented in [DEVELOPMENT.md](DEVELOPMENT.md). Node and edge frontmatter is hidden behind the API; note endpoints read and write Markdown bodies only. Graph, question, and timeline writes that violate runtime contracts return HTTP `400`.
+
 Interactive Swagger UI: `http://localhost:3001/api-docs`
 
 OpenAPI JSON: `http://localhost:3001/api/openapi.json`

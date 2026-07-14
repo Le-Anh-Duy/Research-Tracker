@@ -11,15 +11,18 @@ import HelpView from './components/HelpView';
 import CompassView from './components/CompassView';
 import ReviewView from './components/ReviewView';
 import ChangeReviewModal from './components/ChangeReviewModal';
+import { buildInitialRoadmap, questionNodeId, reconcileQuestionNodes } from './roadmap';
 
 export default function App() {
   const [initialized, setInitialized] = useState(null); // null = loading
+  const [loadError, setLoadError] = useState('');
   const [graph, setGraph] = useState(null);
   const [context, setContext] = useState({ layer1: '', layer2: '', layer3: '' });
   const [timeline, setTimeline] = useState({ months: [] });
   const [questions, setQuestions] = useState([]);
   const [view, setView] = useState('map'); // 'map' | 'compass' | 'review' | 'help'
   const [selectedId, setSelectedId] = useState(null);
+  const [nodeFocus, setNodeFocus] = useState(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
   const [mergingId, setMergingId] = useState(null);
   const [pendingChange, setPendingChange] = useState(null);
@@ -38,21 +41,33 @@ export default function App() {
   const [canRedo, setCanRedo] = useState(false);
 
   useEffect(() => {
-    Promise.all([api.getGraph(), api.getContext(), api.getTimeline(), api.getQuestions()]).then(
-      ([g, c, t, q]) => {
+    Promise.all([api.getGraph(), api.getContext(), api.getTimeline(), api.getQuestions()])
+      .then(async ([g, c, t, q]) => {
         setContext(c);
         setTimeline(t);
         setQuestions(q.questions || []);
         if (g.initialized === false) {
           setInitialized(false);
         } else {
-          serverRevision.current = g.revision || 0;
-          graphRef.current = g;
-          setGraph(g);
+          const next = reconcileQuestionNodes(g, q.questions || []);
+          const questionNodes = g.nodes.filter((node) => node.data.role === 'research-question');
+          const needsReconcile = questionNodes.length !== (q.questions || []).length
+            || questionNodes.some((node) => node.data.title !== next.nodes.find((item) => item.id === node.id)?.data.title);
+          if (needsReconcile) {
+            const existing = new Set(g.nodes.map((node) => node.id));
+            await Promise.all((q.questions || []).filter((question) => !existing.has(questionNodeId(question.id))).map((question) =>
+              api.putNode(questionNodeId(question.id), `# ${question.id}\n\n${question.text}\n\n## Research notes\n`)
+            ));
+            const saved = await api.putGraph(next, g.revision);
+            next.revision = saved.revision;
+          }
+          serverRevision.current = next.revision || 0;
+          graphRef.current = next;
+          setGraph(next);
           setInitialized(true);
         }
-      }
-    );
+      })
+      .catch((error) => setLoadError(error.message));
   }, []);
 
   const syncHistoryFlags = () => {
@@ -194,6 +209,11 @@ export default function App() {
         { immediate: true }
       );
       api.deleteNode(id);
+      setNodeFocus((focus) => {
+        if (!focus?.ids.includes(id)) return focus;
+        const ids = focus.ids.filter((nodeId) => nodeId !== id);
+        return ids.length ? { ...focus, ids } : null;
+      });
       setSelectedId((sel) => (sel === id ? null : sel));
       setSelectedEdgeId(null);
     },
@@ -212,7 +232,12 @@ export default function App() {
               ? { ...n, data: { ...n.data, title, outcome, status: 'merged', rq, finding, contribution } }
               : n
           ),
-          edges: g.edges.map((e) => (e.source === id ? { ...e, data: { ...e.data, kind: 'merge' } } : e)),
+          edges: (() => {
+            const changed = g.edges.map((e) => (e.source === id ? { ...e, data: { ...e.data, kind: 'merge' } } : e));
+            const questionNode = g.nodes.find((node) => node.data.questionId === rq);
+            if (!questionNode || changed.some((edge) => edge.source === id && edge.target === questionNode.id)) return changed;
+            return [...changed, { id: `e_${id}_${questionNode.id}`, source: id, target: questionNode.id, data: { kind: 'merge' } }];
+          })(),
         }),
         { immediate: true }
       );
@@ -221,16 +246,29 @@ export default function App() {
     [updateGraph]
   );
 
-  const affectedFor = useCallback((type, key) => graph.nodes
-    .filter((n) => n.id !== 'n_start' && (type === 'topic' || (type === 'objective' && n.data.anchor) || (type === 'question' && n.data.rq === key)))
-    .map((n) => ({ id: n.id, title: n.data.title })), [graph]);
+  const affectedFor = useCallback((type, key) => {
+    const questionNode = graph.nodes.find((node) => node.data.questionId === key);
+    const linked = new Set(questionNode ? graph.edges.flatMap((edge) => edge.source === questionNode.id ? [edge.target] : edge.target === questionNode.id ? [edge.source] : []) : []);
+    return graph.nodes
+      .filter((node) => node.id !== 'n_start' && (
+        type === 'topic'
+        || (type === 'objective' && node.data.role === 'objective')
+        || (type === 'question' && node.data.role !== 'research-question' && (node.data.rq === key || linked.has(node.id)))
+      ))
+      .map((node) => ({ id: node.id, title: node.data.title }));
+  }, [graph]);
 
   const replaceHeading = (content, title) => content.replace(/^# .*$/m, `# ${title}`);
+  const replaceDoneWhen = (content, value) => {
+    const line = value ? `**Done when:** ${value}` : '';
+    if (/^\*\*Done when:\*\*.*$/m.test(content)) return content.replace(/^\*\*Done when:\*\*.*$/m, line).replace(/\n{3,}/g, '\n\n');
+    return line ? content.replace(/^(# .*\n)/, `$1\n${line}\n`) : content;
+  };
   const objectiveText = (line) => line.replace(/^O\d+\s*:\s*/, '').trim();
 
   const saveContextLayer = useCallback((layerNum, value, onCancel) => {
     const type = layerNum === 1 ? 'topic' : 'objective';
-    const objectiveNodes = graph.nodes.filter((node) => node.data.anchor && node.id !== 'n_start').sort((a, b) => a.position.x - b.position.x);
+    const objectiveNodes = graph.nodes.filter((node) => node.data.role === 'objective').sort((a, b) => a.position.x - b.position.x);
     const nextObjectives = value.split('\n').filter(Boolean).map(objectiveText).filter(Boolean);
     const currentObjectives = context.layer2.split('\n').filter(Boolean).map(objectiveText).filter(Boolean);
     const reordered = nextObjectives.length === currentObjectives.length && nextObjectives.some((text, index) => text !== currentObjectives[index])
@@ -261,17 +299,22 @@ export default function App() {
     }});
   }, [context, affectedFor, graph, updateGraph]);
 
+  const saveQuestions = useCallback(async (next) => {
+    const existing = new Set(graphRef.current.nodes.map((node) => node.id));
+    await Promise.all(next.filter((question) => !existing.has(questionNodeId(question.id))).map((question) =>
+      api.putNode(questionNodeId(question.id), `# ${question.id}\n\n${question.text}\n\n## Research notes\n`)
+    ));
+    updateGraph((current) => reconcileQuestionNodes(current, next), { immediate: true });
+    updateQuestions(next, true);
+    setContext((c) => ({ ...c, layer3: next.map((q, i) => `RQ${i + 1}${q.obj >= 0 ? ` (O${q.obj + 1})` : ''}: ${q.text}`).join('\n') }));
+  }, [updateGraph, updateQuestions]);
+
   const requestQuestionChange = useCallback((question, value, onCancel) => {
     setPendingChange({ type: 'question', title: `Update ${question.id}`, before: question.text, after: value, affected: affectedFor('question', question.id), cancel: onCancel, apply: () => {
       const next = questions.map((q) => q.id === question.id ? { ...q, text: value } : q);
-      saveQuestions(next);
+      return saveQuestions(next);
     }});
-  }, [affectedFor, questions]);
-
-  const saveQuestions = useCallback((next) => {
-    updateQuestions(next, true);
-    setContext((c) => ({ ...c, layer3: next.map((q, i) => `RQ${i + 1}${q.obj >= 0 ? ` (O${q.obj + 1})` : ''}: ${q.text}`).join('\n') }));
-  }, [updateQuestions]);
+  }, [affectedFor, questions, saveQuestions]);
 
   const requestQuestionObjectiveChange = useCallback((question, obj) => {
     if (obj === question.obj) return;
@@ -281,13 +324,51 @@ export default function App() {
   const requestQuestionAdd = useCallback((text, obj, onCancel) => {
     const maxId = questions.reduce((max, question) => Math.max(max, Number(question.id.replace(/^RQ/, '')) || 0), 0);
     const nextQuestion = { id: `RQ${maxId + 1}`, text, obj, status: 'open', answer: '' };
-    setPendingChange({ type: 'question', title: `Add ${nextQuestion.id}`, before: '', after: text, affected: [], cancel: onCancel, apply: () => { saveQuestions([...questions, nextQuestion]); onCancel?.(); } });
+    setPendingChange({ type: 'question', title: `Add ${nextQuestion.id}`, before: '', after: text, affected: [], cancel: onCancel, apply: async () => { await saveQuestions([...questions, nextQuestion]); onCancel?.(); } });
   }, [questions, saveQuestions]);
 
   const requestQuestionDelete = useCallback((question) => {
     const affected = affectedFor('question', question.id);
     setPendingChange({ type: 'question', title: `Delete ${question.id}`, before: question.text, after: '', affected, blocked: affected.length ? 'Reassign or unlink the listed evidence nodes before deleting this research question.' : '', apply: () => saveQuestions(questions.filter((q) => q.id !== question.id)) });
   }, [affectedFor, questions, saveQuestions]);
+
+  const saveObjectiveDetails = useCallback(async (id, { title, exitCriteria, met }) => {
+    const objectives = graphRef.current.nodes.filter((node) => node.data.role === 'objective').sort((a, b) => a.position.x - b.position.x);
+    const index = objectives.findIndex((node) => node.id === id);
+    if (index < 0) throw new Error('objective not found');
+    const cleanTitle = title.trim();
+    const lines = context.layer2.split('\n').filter(Boolean);
+    lines[index] = `O${index + 1}: ${cleanTitle}`;
+    const note = await api.getNode(id);
+    await Promise.all([
+      api.putNode(id, replaceDoneWhen(replaceHeading(note.content, lines[index]), exitCriteria.trim())),
+      api.putContext(2, lines.join('\n')),
+    ]);
+    updateGraph((current) => ({ ...current, nodes: current.nodes.map((node) => node.id === id
+      ? { ...node, data: { ...node.data, title: lines[index].slice(0, 90), exitCriteria: exitCriteria.trim(), met } }
+      : node) }), { immediate: true });
+    setContext((current) => ({ ...current, layer2: lines.join('\n') }));
+  }, [context.layer2, updateGraph]);
+
+  const addObjective = useCallback(async ({ title, exitCriteria }) => {
+    const objectives = graphRef.current.nodes.filter((node) => node.data.role === 'objective').sort((a, b) => a.position.x - b.position.x);
+    const number = objectives.reduce((max, node) => Math.max(max, Number(node.id.match(/^n_o(\d+)$/)?.[1]) || 0), 0) + 1;
+    const id = `n_o${number}`;
+    const label = `O${objectives.length + 1}: ${title.trim()}`;
+    const lines = [...context.layer2.split('\n').filter(Boolean), label];
+    const x = objectives.length ? Math.max(...objectives.map((node) => node.position.x)) + 300 : 80;
+    const done = exitCriteria.trim();
+    await Promise.all([
+      api.putNode(id, `# ${label}\n${done ? `\n**Done when:** ${done}\n` : ''}`),
+      api.putContext(2, lines.join('\n')),
+    ]);
+    updateGraph((current) => ({ ...current, nodes: [...current.nodes, {
+      id,
+      position: { x, y: 210 },
+      data: { title: label.slice(0, 90), status: 'active', outcome: '', anchor: true, role: 'objective', exitCriteria: done, met: false },
+    }] }), { immediate: true });
+    setContext((current) => ({ ...current, layer2: lines.join('\n') }));
+  }, [context.layer2, updateGraph]);
 
   const applyChange = useCallback(() => {
     if (!pendingChange) return;
@@ -305,93 +386,31 @@ export default function App() {
 
   const jumpToNode = useCallback((nodeId) => {
     setView('map');
+    setNodeFocus(null);
     setSelectedId(nodeId);
     setSelectedEdgeId(null);
   }, []);
 
+  const focusMilestone = useCallback((milestone) => {
+    if (nodeFocus?.milestoneId === milestone.id) {
+      setNodeFocus(null);
+      setSelectedId(null);
+      return;
+    }
+    const ids = milestone.nodeIds.filter((id) => graphRef.current?.nodes.some((node) => node.id === id));
+    setNodeFocus(ids.length ? { milestoneId: milestone.id, label: milestone.title, ids } : null);
+    setSelectedId(ids[0] || null);
+    setSelectedEdgeId(null);
+  }, [nodeFocus]);
+
   // Wizard output -> context + node files + graph + timeline + questions, then enter the app.
   const handleInitDone = useCallback(
-    async ({ topic, objectives, questions: qs, firstTasks, exitCriteria, months, connectInitialNodes }) => {
-      const layer2 = objectives.map((o, i) => `O${i + 1}: ${o}`).join('\n');
-      const layer3 = qs
-        .map((q, i) => `RQ${i + 1}${q.obj >= 0 ? ` (O${q.obj + 1})` : ''}: ${q.text}`)
-        .join('\n');
-
-      const nodes = [];
-      const edges = [];
-      const files = {};
-      const COL = 300;
-      const startId = 'n_start';
-      const centerX = 80 + ((objectives.length - 1) * COL) / 2;
-
-      nodes.push({
-        id: startId,
-        position: { x: centerX, y: 40 },
-        data: { title: topic.slice(0, 90), status: 'active', outcome: '', anchor: true },
-      });
-      files[startId] = `# ${topic}\n\n## Research questions\n${layer3}\n`;
-
-      objectives.forEach((obj, i) => {
-        const oid = `n_o${i + 1}`;
-        const rqs = qs
-          .filter((q) => q.obj === i)
-          .map((q) => `- ${q.text}`)
-          .join('\n');
-        const exit = (exitCriteria[i] || '').trim();
-        nodes.push({
-          id: oid,
-          position: { x: 80 + i * COL, y: 210 },
-          data: {
-            title: `O${i + 1}: ${obj.slice(0, 70)}`,
-            status: 'active',
-            outcome: '',
-            anchor: true,
-            exitCriteria: exit,
-            met: false,
-          },
-        });
-        files[oid] = `# O${i + 1}: ${obj}\n${exit ? `\n**Done when:** ${exit}\n` : ''}${
-          rqs ? `\n## Questions\n${rqs}\n` : ''
-        }`;
-        if (connectInitialNodes) edges.push({ id: `e_start_o${i + 1}`, source: startId, target: oid, data: { kind: 'step' } });
-
-        const task = (firstTasks[i] || '').trim();
-        if (task) {
-          const tid = `n_o${i + 1}_t1`;
-          nodes.push({
-            id: tid,
-            position: { x: 80 + i * COL, y: 390 },
-            data: { title: task.slice(0, 90), status: 'active', outcome: '' },
-          });
-          files[tid] = `# ${task}\n\n- [ ] ${task}\n`;
-          if (connectInitialNodes) edges.push({ id: `e_o${i + 1}_t1`, source: oid, target: tid, data: { kind: 'step' } });
-        }
-      });
-
-      const newGraph = { nodes, edges };
-      const newTimeline = {
-        months: (months || []).map((m, mi) => ({
-          id: `m_${mi + 1}`,
-          title: m.title,
-          milestones: m.milestones.map((ms, msi) => ({
-            id: `m_${mi + 1}_ms_${msi + 1}`,
-            title: ms.text,
-            obj: ms.obj,
-            nodeIds: [],
-          })),
-        })),
-      };
-      const newQuestions = qs.map((q, i) => ({
-        id: `RQ${i + 1}`,
-        text: q.text,
-        obj: q.obj,
-        status: 'open',
-        answer: '',
-      }));
+    async (input) => {
+      const { context: newContext, graph: newGraph, files, timeline: newTimeline, questions: newQuestions } = buildInitialRoadmap(input);
 
       await Promise.all([
-        api.putContext(1, topic),
-        api.putContext(2, layer2),
+        api.putContext(1, newContext.layer1),
+        api.putContext(2, newContext.layer2),
         api.putTimeline(newTimeline),
         api.putQuestions({ questions: newQuestions }), // also writes layer3 file server-side
         ...Object.entries(files).map(([id, content]) => api.putNode(id, content)),
@@ -399,7 +418,7 @@ export default function App() {
       const saved = await api.putGraph(newGraph);
       newGraph.revision = saved.revision;
       serverRevision.current = saved.revision;
-      setContext({ layer1: topic, layer2, layer3 });
+      setContext(newContext);
       setTimeline(newTimeline);
       setQuestions(newQuestions);
       graphRef.current = newGraph;
@@ -456,21 +475,42 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [view, undo, redo, selectedEdgeId, deleteEdge]);
 
+  if (loadError) return <div className="load-error"><h1>Could not open the roadmap</h1><p>{loadError}</p><button className="btn primary" onClick={() => window.location.reload()}>Retry</button></div>;
   if (initialized === null) return <div className="loading">Loading...</div>;
   if (!initialized) return <InitWizard onDone={handleInitDone} />;
 
-  const selectedNode = graph.nodes.find((n) => n.id === selectedId);
+  const displayNode = (node) => {
+    if (!node?.data.questionId) return node;
+    const question = questions.find((item) => item.id === node.data.questionId);
+    return question ? { ...node, data: { ...node.data, title: `${question.id}: ${question.text}` } } : node;
+  };
+  const selectedNode = displayNode(graph.nodes.find((n) => n.id === selectedId));
   const mergingNode = graph.nodes.find((n) => n.id === mergingId);
-  const nodesById = Object.fromEntries(graph.nodes.map((n) => [n.id, n]));
+  const nodesById = Object.fromEntries(graph.nodes.map((n) => [n.id, displayNode(n)]));
   const milestoneNodeIds = new Set(
     timeline.months.flatMap((month) => month.milestones.flatMap((milestone) => milestone.nodeIds || []))
   );
+  const saveTimeline = async (months) => {
+    try {
+      const next = { months };
+      await api.putTimeline(next);
+      setTimeline(next);
+      if (nodeFocus) {
+        const milestone = months.flatMap((month) => month.milestones).find((item) => item.id === nodeFocus.milestoneId);
+        const ids = milestone?.nodeIds.filter((id) => nodesById[id]) || [];
+        setNodeFocus(milestone && ids.length ? { milestoneId: milestone.id, label: milestone.title, ids } : null);
+      }
+      return true;
+    } catch (error) {
+      window.alert(`Could not save timeline: ${error.message}`);
+      return false;
+    }
+  };
 
   return (
     <div className="app">
       <TopBar
         context={context}
-        onSave={saveContextLayer}
         view={view}
         onSetView={setView}
         onOpenCompass={() => setView('compass')}
@@ -478,19 +518,22 @@ export default function App() {
         onOpenHelp={() => setView('help')}
       />
       {view === 'map' && (
-        <>
-          <TimelineBar months={timeline.months} nodesById={nodesById} onSelect={setSelectedId} />
-          <div className="main">
+        <div className="main">
+          <TimelineBar months={timeline.months} nodesById={nodesById} activeMilestoneId={nodeFocus?.milestoneId} onFocus={focusMilestone} onChange={saveTimeline} />
             <ReactFlowProvider>
               <Canvas
                 graph={graph}
+                questions={questions}
                 milestoneNodeIds={milestoneNodeIds}
                 updateGraph={updateGraph}
                 deleteEdge={deleteEdge}
                 selectedId={selectedId}
                 selectedEdgeId={selectedEdgeId}
+                focusedNodeIds={nodeFocus?.ids || []}
+                focusLabel={nodeFocus?.label || ''}
                 onSelect={setSelectedId}
                 onSelectEdge={setSelectedEdgeId}
+                onClearFocus={() => setNodeFocus(null)}
                 onUndo={undo}
                 onRedo={redo}
                 canUndo={canUndo}
@@ -518,17 +561,17 @@ export default function App() {
                 onClose={() => setSelectedEdgeId(null)}
               />
             )}
-          </div>
-        </>
+        </div>
       )}
       {view === 'compass' && (
         <CompassView
           context={context}
-          objectiveNodes={graph.nodes.filter((n) => n.data.anchor && n.id !== 'n_start')}
+          objectiveNodes={graph.nodes.filter((n) => n.data.role === 'objective').sort((a, b) => a.position.x - b.position.x)}
           questions={questions}
           nodes={graph.nodes}
           onSaveTopic={(value) => saveContextLayer(1, value)}
-          onSaveObjectives={(value) => saveContextLayer(2, value)}
+          onSaveObjective={saveObjectiveDetails}
+          onAddObjective={addObjective}
           onRequestQuestionChange={requestQuestionChange}
           onRequestQuestionObjectiveChange={requestQuestionObjectiveChange}
           onRequestQuestionAdd={requestQuestionAdd}

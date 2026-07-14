@@ -1,9 +1,10 @@
 import { milestoneStatus } from '../timelineStatus';
+import { isEvidenceFor } from '../roadmap';
 
 export default function ReviewView({ nodes, questions, timeline, onJumpToNode, onOpenCompass }) {
-  const active = nodes.filter((n) => n.data.status === 'active' && !n.data.anchor);
-  const objectives = nodes.filter((n) => n.data.anchor && n.id !== 'n_start');
-  const gaps = questions.filter((q) => !nodes.some((n) => n.data.rq === q.id));
+  const active = nodes.filter((n) => n.data.status === 'active' && !n.data.anchor && n.data.role !== 'note');
+  const objectives = nodes.filter((n) => n.data.role === 'objective');
+  const gaps = questions.filter((question) => !nodes.some((node) => isEvidenceFor(node, question.id)));
   const claims = nodes.filter((n) => n.data.status === 'merged' && n.data.rq && !n.data.contribution);
   const milestones = timeline.months.flatMap((month) => month.milestones.map((milestone) => ({
     ...milestone,
@@ -86,5 +87,5 @@ function ReviewSection({ title, empty, children }) {
 }
 
 function ReviewRow({ children, onClick }) {
-  return <button className="review-row" onClick={onClick}>{children}</button>;
+  return <button className="review-row" onClick={onClick} disabled={!onClick}>{children}</button>;
 }

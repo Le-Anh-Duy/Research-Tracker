@@ -12,6 +12,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import * as api from '../api';
 import ResearchNode from './ResearchNode';
+import { focusState } from '../roadmap';
 
 const nodeTypes = { research: ResearchNode };
 const STEP_COLOR = '#b9b2a3';
@@ -19,13 +20,17 @@ const MERGE_COLOR = '#d97757';
 
 export default function Canvas({
   graph,
+  questions,
   milestoneNodeIds,
   updateGraph,
   deleteEdge,
   selectedId,
   selectedEdgeId,
+  focusedNodeIds,
+  focusLabel,
   onSelect,
   onSelectEdge,
+  onClearFocus,
   onUndo,
   onRedo,
   canUndo,
@@ -33,13 +38,19 @@ export default function Canvas({
 }) {
   const { screenToFlowPosition } = useReactFlow();
   const [hoverEdge, setHoverEdge] = useState(null);
+  const [newNode, setNewNode] = useState(null);
+  const [createError, setCreateError] = useState('');
 
   const nodes = graph.nodes.map((n) => ({
     ...n,
     type: 'research',
     data: {
       ...n.data,
+      title: n.data.questionId
+        ? `${n.data.questionId}: ${questions.find((question) => question.id === n.data.questionId)?.text || n.data.title}`
+        : n.data.title,
       isSelected: n.id === selectedId,
+      focusState: focusState(n.id, focusedNodeIds),
       role:
         n.data.role ||
         (n.id === 'n_start'
@@ -60,6 +71,7 @@ export default function Canvas({
     const merged = e.data?.kind === 'merge';
     const hovered = e.id === hoverEdge;
     const selected = e.id === selectedEdgeId;
+    const focusMatch = !focusedNodeIds.length || (focusedNodeIds.includes(e.source) && focusedNodeIds.includes(e.target));
     const color = selected ? '#1f1e1d' : hovered ? '#b3452e' : merged ? MERGE_COLOR : STEP_COLOR;
     return {
       ...e,
@@ -68,6 +80,7 @@ export default function Canvas({
         strokeWidth: selected || hovered ? 2.5 : 1.5,
         strokeDasharray: merged ? '6 4' : undefined,
         cursor: 'pointer',
+        opacity: focusMatch ? 1 : 0.12,
       },
       markerEnd: { type: MarkerType.ArrowClosed, color },
     };
@@ -108,19 +121,34 @@ export default function Canvas({
       // Only create on empty canvas, not on nodes/controls.
       if (!event.target.classList.contains('react-flow__pane')) return;
       const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
-      const id = 'n_' + Date.now();
-      api.putNode(id, '');
+      setCreateError('');
+      setNewNode({ position, title: '', role: 'work' });
+    },
+    [screenToFlowPosition]
+  );
+
+  const createNode = async (event) => {
+    event.preventDefault();
+    const title = newNode.title.trim();
+    if (!title) return;
+    const id = 'n_' + Date.now();
+    const kind = newNode.role === 'synthesis' ? 'synthesis' : undefined;
+    try {
+      await api.putNode(id, `# ${title}\n`);
       updateGraph(
-        (g) => ({
-          ...g,
-          nodes: [...g.nodes, { id, position, data: { title: 'untitled', status: 'active', outcome: '' } }],
+        (graph) => ({
+          ...graph,
+          nodes: [...graph.nodes, { id, position: newNode.position, data: { title, role: newNode.role, kind, status: 'active', outcome: '' } }],
         }),
         { immediate: true }
       );
+      setNewNode(null);
       onSelect(id);
-    },
-    [screenToFlowPosition, updateGraph, onSelect]
-  );
+      onSelectEdge(null);
+    } catch (error) {
+      setCreateError(error.message);
+    }
+  };
 
   return (
     <div className="canvas-wrap" onDoubleClick={onDoubleClick}>
@@ -131,6 +159,11 @@ export default function Canvas({
         <button className="undo-btn" onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)">
           Redo
         </button>
+        {focusedNodeIds.length > 0 && (
+          <button className="focus-chip" onClick={onClearFocus} title="Clear milestone filter">
+            {focusLabel} · {focusedNodeIds.length} nodes <span aria-hidden="true">×</span>
+          </button>
+        )}
       </div>
       <ReactFlow
         nodes={nodes}
@@ -140,6 +173,7 @@ export default function Canvas({
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeClick={(e, node) => {
+          if (focusedNodeIds.length && !focusedNodeIds.includes(node.id)) onClearFocus();
           onSelect(node.id);
           onSelectEdge(null);
         }}
@@ -150,6 +184,7 @@ export default function Canvas({
         onEdgeMouseEnter={(e, edge) => setHoverEdge(edge.id)}
         onEdgeMouseLeave={() => setHoverEdge(null)}
         onPaneClick={() => {
+          onClearFocus();
           onSelect(null);
           onSelectEdge(null);
         }}
@@ -162,8 +197,36 @@ export default function Canvas({
         <Controls showInteractive={false} />
       </ReactFlow>
       <div className="canvas-hint">
-        double-click: new node | drag handles: connect | click a link to inspect it | Ctrl+Z to undo
+        double-click empty space to add work · drag handles to connect · Ctrl+Z to undo
       </div>
+      {newNode && (
+        <div className="overlay" onClick={() => setNewNode(null)} onDoubleClick={(event) => event.stopPropagation()}>
+          <form className="modal node-create" onSubmit={createNode} onClick={(event) => event.stopPropagation()}>
+            <p className="screen-kicker">NEW ROADMAP NODE</p>
+            <h2>Add research work</h2>
+            <p className="muted">Name the work first. Detailed notes can be added after the node exists.</p>
+            <div className="field">
+              <label>Title</label>
+              <input autoFocus type="text" value={newNode.title} onChange={(event) => setNewNode({ ...newNode, title: event.target.value })} placeholder="e.g. Reproduce GeoCLIP baseline" />
+            </div>
+            <div className="field">
+              <label>Type</label>
+              <select value={newNode.role} onChange={(event) => setNewNode({ ...newNode, role: event.target.value })}>
+                <option value="work">Work</option>
+                <option value="experiment">Experiment</option>
+                <option value="decision">Decision</option>
+                <option value="synthesis">Synthesis</option>
+                <option value="note">Note / dump</option>
+              </select>
+            </div>
+            {createError && <p className="form-error">Could not create node: {createError}</p>}
+            <div className="modal-actions">
+              <button type="button" className="btn ghost" onClick={() => setNewNode(null)}>Cancel</button>
+              <button className="btn primary" disabled={!newNode.title.trim()}>Create node</button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

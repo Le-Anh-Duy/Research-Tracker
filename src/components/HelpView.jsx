@@ -12,8 +12,8 @@ const SECTIONS = [
     title: '2. Read the roadmap',
     body: (
       <>
-        <p>The Map is the working graph. The top lines show the topic, objectives, and research questions. The timeline shows your months and two-week milestones.</p>
-        <p>A month advances when its milestones are complete. A milestone can point to one or more nodes, so the timeline tells you what a result is for, while the graph shows how the work connects.</p>
+        <p>The Map is the working graph. Project, objectives, and research questions are separate anchor nodes, so work can link directly to the question it serves. The timeline shows your months and milestones.</p>
+        <p>A month advances when its milestones are complete. A milestone can point to one or more nodes. Click it to focus every linked node and dim unrelated work; clear the filter from the chip above the map or by clicking empty canvas.</p>
       </>
     ),
   },
@@ -22,7 +22,8 @@ const SECTIONS = [
     body: (
       <>
         <p>Double-click an empty area of the Map to create a node. Click a node to open its notes. Use the title, status, outcome, tags, and Markdown lab log to record what happened.</p>
-        <p>Use nodes for experiments, datasets, implementation work, analysis, failed attempts, and synthesis. A negative result is still useful evidence: mark it dead or merge it with a clear outcome.</p>
+        <p><strong>Work</strong> is the flexible default for implementation, datasets, reading, and preliminary analysis. <strong>Experiment</strong> tests a hypothesis. <strong>Decision</strong> records a choice and rationale. <strong>Synthesis</strong> combines results toward an RQ. <strong>Note / dump</strong> accepts anything and carries no workflow expectation.</p>
+        <p>Project, objective, and research-question nodes are structural anchors; add or edit objectives and questions in Compass. Milestones live in the timeline rather than becoming manual node types. A negative result is still useful evidence: mark it dead or merge it with a clear outcome.</p>
         <p>Delete a selected node from its sidebar. Its file and connected links are removed, and the graph can be restored with Undo.</p>
       </>
     ),
