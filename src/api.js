@@ -1,16 +1,47 @@
-const json = (r) => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)));
+const json = async (r) => {
+  const data = await r.json();
+  if (r.ok) return data;
+  const error = new Error(data.error || 'HTTP ' + r.status);
+  error.status = r.status;
+  error.data = data;
+  throw error;
+};
 const put = (url, body) =>
   fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(json);
 
 export const getGraph = () => fetch('/api/graph').then(json);
-export const putGraph = (graph) => put('/api/graph', graph);
+export const putGraph = (graph, expectedRevision) => put('/api/graph', { nodes: graph.nodes, edges: graph.edges, expectedRevision });
+export const getTimeline = () => fetch('/api/timeline').then(json);
+export const putTimeline = (timeline) => put('/api/timeline', timeline);
+export const getQuestions = () => fetch('/api/questions').then(json);
+export const putQuestions = (questions) => put('/api/questions', questions);
 export const getNode = (id) => fetch(`/api/node/${id}`).then(json);
 export const putNode = (id, content) => put(`/api/node/${id}`, { content });
+export const deleteNode = (id) => fetch(`/api/node/${id}`, { method: 'DELETE' }).then(json);
 export const getContext = () => fetch('/api/context').then(json);
 export const putContext = (layer, content) => put(`/api/context/${layer}`, { content });
+export const createChangeReport = (change) => fetch('/api/change-reports', {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(change),
+}).then(json);
 export const summarize = (nodeId) =>
   fetch('/api/summarize', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ nodeId }),
   }).then(json);
+export const researchState = () => fetch('/api/research/state').then(json);
+export const createResearchNode = (node) => fetch('/api/research/nodes', {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(node),
+}).then(json);
+export const createResearchLink = (link) => fetch('/api/research/links', {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(link),
+}).then(json);
+export const appendResearchLog = (entry) => fetch('/api/research/log', {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry),
+}).then(json);
+export const markResearchDeadEnd = (entry) => fetch('/api/research/dead-end', {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry),
+}).then(json);
+export const mergeResearchNode = (entry) => fetch('/api/research/merge', {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry),
+}).then(json);

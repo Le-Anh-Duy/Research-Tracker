@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 // The wizard asks; the researcher thinks. No AI here by design.
-const STEPS = ['Topic', 'Objectives', 'Questions', 'First tasks', 'Review'];
+const STEPS = ['Topic', 'Objectives', 'Questions', 'First tasks', 'Timeline', 'Review'];
 
 export default function InitWizard({ onDone }) {
   const [step, setStep] = useState(0);
@@ -9,17 +9,24 @@ export default function InitWizard({ onDone }) {
   const [objectives, setObjectives] = useState(['']);
   const [questions, setQuestions] = useState([{ text: '', obj: -1 }]);
   const [firstTasks, setFirstTasks] = useState({});
+  const [exitCriteria, setExitCriteria] = useState({});
+  const [months, setMonths] = useState([]);
+  const [connectInitialNodes, setConnectInitialNodes] = useState(true);
   const [creating, setCreating] = useState(false);
 
   const cleanObjectives = objectives.map((o) => o.trim()).filter(Boolean);
   const cleanQuestions = questions.filter((q) => q.text.trim());
+  const cleanMonths = months
+    .map((m) => ({ title: m.title.trim(), milestones: m.milestones.filter((ms) => ms.text.trim()) }))
+    .filter((m) => m.title && m.milestones.length > 0);
 
   const canNext =
     (step === 0 && topic.trim().length > 0) ||
     (step === 1 && cleanObjectives.length > 0) ||
     step === 2 ||
     step === 3 ||
-    step === 4;
+    step === 4 ||
+    step === 5;
 
   const next = () => setStep((s) => s + 1);
   const back = () => setStep((s) => s - 1);
@@ -31,12 +38,40 @@ export default function InitWizard({ onDone }) {
       objectives: cleanObjectives,
       questions: cleanQuestions.map((q) => ({ text: q.text.trim(), obj: q.obj })),
       firstTasks: cleanObjectives.map((_, i) => firstTasks[i] || ''),
+      exitCriteria: cleanObjectives.map((_, i) => exitCriteria[i] || ''),
+      months: cleanMonths.map((m) => ({
+        title: m.title,
+        milestones: m.milestones.map((ms) => ({ text: ms.text.trim(), obj: ms.obj })),
+      })),
+      connectInitialNodes,
     });
   };
 
   const setList = (setter) => (i, value) =>
     setter((list) => list.map((item, idx) => (idx === i ? value : item)));
   const setObjective = setList(setObjectives);
+
+  const addMonth = () =>
+    setMonths((l) => [...l, { title: `Month ${l.length + 1}`, milestones: [{ text: '', obj: -1 }] }]);
+  const removeMonth = (mi) => setMonths((l) => l.filter((_, idx) => idx !== mi));
+  const setMonthTitle = (mi, title) =>
+    setMonths((l) => l.map((m, idx) => (idx === mi ? { ...m, title } : m)));
+  const addMilestone = (mi) =>
+    setMonths((l) =>
+      l.map((m, idx) => (idx === mi ? { ...m, milestones: [...m.milestones, { text: '', obj: -1 }] } : m))
+    );
+  const removeMilestone = (mi, msi) =>
+    setMonths((l) =>
+      l.map((m, idx) => (idx === mi ? { ...m, milestones: m.milestones.filter((_, j) => j !== msi) } : m))
+    );
+  const setMilestone = (mi, msi, patch) =>
+    setMonths((l) =>
+      l.map((m, idx) =>
+        idx === mi
+          ? { ...m, milestones: m.milestones.map((ms, j) => (j === msi ? { ...ms, ...patch } : ms)) }
+          : m
+      )
+    );
 
   return (
     <div className="wizard">
@@ -147,15 +182,16 @@ export default function InitWizard({ onDone }) {
 
         {step === 3 && (
           <>
-            <h1>What can you start this week?</h1>
+            <h1>Where does each objective start and stop?</h1>
             <p className="help">
-              For each objective, name the first concrete task — something small enough to actually begin (a
-              baseline to reproduce, a dataset to download, a paper to dissect). These become your starting nodes.
+              For each objective: the FIRST concrete task (small enough to begin now), and — just as important — the
+              "done when" that stops the trial-and-error loop. Done isn't "beats SOTA"; it's "I have the evidence I
+              need to answer the question." Both are optional but the second one saves months.
             </p>
             <div className="wizard-list">
               {cleanObjectives.map((o, i) => (
-                <div key={i}>
-                  <p className="help" style={{ marginBottom: 4 }}>
+                <div key={i} className="review-block" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <p className="help" style={{ margin: 0 }}>
                     <strong>O{i + 1}:</strong> {o}
                   </p>
                   <input
@@ -164,6 +200,12 @@ export default function InitWizard({ onDone }) {
                     onChange={(e) => setFirstTasks((t) => ({ ...t, [i]: e.target.value }))}
                     placeholder="First concrete task…"
                   />
+                  <input
+                    type="text"
+                    value={exitCriteria[i] || ''}
+                    onChange={(e) => setExitCriteria((c) => ({ ...c, [i]: e.target.value }))}
+                    placeholder="Done when… (exit criterion)"
+                  />
                 </div>
               ))}
             </div>
@@ -171,6 +213,62 @@ export default function InitWizard({ onDone }) {
         )}
 
         {step === 4 && (
+          <>
+            <h1>Roughly, how should this unfold over time?</h1>
+            <p className="help">
+              Optional. Break the work into months, and each month into ~2-week milestones. This becomes an
+              always-visible timeline — milestones aren't checkboxes, they complete automatically once you link
+              them to a node and merge it. Leave this empty if you'd rather plan as you go.
+            </p>
+            <div className="wizard-list">
+              {months.map((m, mi) => (
+                <div key={mi} className="review-block" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div className="wizard-item">
+                    <input type="text" value={m.title} onChange={(e) => setMonthTitle(mi, e.target.value)} />
+                    <button className="remove" onClick={() => removeMonth(mi)}>
+                      ✕
+                    </button>
+                  </div>
+                  {m.milestones.map((ms, msi) => (
+                    <div className="wizard-item" key={msi}>
+                      <span className="ordinal">·</span>
+                      <input
+                        type="text"
+                        value={ms.text}
+                        onChange={(e) => setMilestone(mi, msi, { text: e.target.value })}
+                        placeholder="Milestone for these ~2 weeks…"
+                      />
+                      <select
+                        value={ms.obj}
+                        onChange={(e) => setMilestone(mi, msi, { obj: Number(e.target.value) })}
+                      >
+                        <option value={-1}>general</option>
+                        {cleanObjectives.map((_, oi) => (
+                          <option key={oi} value={oi}>
+                            O{oi + 1}
+                          </option>
+                        ))}
+                      </select>
+                      {m.milestones.length > 1 && (
+                        <button className="remove" onClick={() => removeMilestone(mi, msi)}>
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button className="btn ghost" onClick={() => addMilestone(mi)}>
+                    + Add milestone
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button className="btn ghost" onClick={addMonth}>
+              + Add month
+            </button>
+          </>
+        )}
+
+        {step === 5 && (
           <>
             <h1>Your roadmap</h1>
             <div className="review-block">
@@ -185,6 +283,9 @@ export default function InitWizard({ onDone }) {
                     O{i + 1}: {o}
                     {firstTasks[i]?.trim() && (
                       <span style={{ color: 'var(--ink-soft)' }}> → first: {firstTasks[i]}</span>
+                    )}
+                    {exitCriteria[i]?.trim() && (
+                      <span style={{ color: 'var(--ink-soft)' }}> · done when: {exitCriteria[i]}</span>
                     )}
                   </li>
                 ))}
@@ -203,6 +304,37 @@ export default function InitWizard({ onDone }) {
                 </ul>
               </div>
             )}
+            {cleanMonths.length > 0 && (
+              <div className="review-block">
+                <h3>Timeline</h3>
+                {cleanMonths.map((m, mi) => (
+                  <div key={mi} style={{ marginBottom: 6 }}>
+                    <p style={{ margin: '4px 0' }}>
+                      <strong>{m.title}</strong>
+                    </p>
+                    <ul>
+                      {m.milestones.map((ms, msi) => (
+                        <li key={msi}>
+                          {ms.text}
+                          {ms.obj >= 0 ? ` (O${ms.obj + 1})` : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
+            <label className="wizard-option">
+              <input
+                type="checkbox"
+                checked={connectInitialNodes}
+                onChange={(e) => setConnectInitialNodes(e.target.checked)}
+              />
+              <span>
+                Connect initial nodes to the roadmap
+                <small>Turn this off to create floating objectives and tasks. You can link them later when the research path becomes clearer.</small>
+              </span>
+            </label>
             <p className="help">
               This writes plain text files into <code>research_data/</code> — everything stays on your machine, and
               you can edit any of it later.
@@ -217,12 +349,12 @@ export default function InitWizard({ onDone }) {
             </button>
           )}
           <div className="right">
-            {step < 4 && (
+            {step < 5 && (
               <button className="btn primary" onClick={next} disabled={!canNext}>
                 Next →
               </button>
             )}
-            {step === 4 && (
+            {step === 5 && (
               <button className="btn primary" onClick={create} disabled={creating}>
                 {creating ? 'Creating…' : 'Create roadmap'}
               </button>
