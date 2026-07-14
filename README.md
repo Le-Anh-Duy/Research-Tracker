@@ -86,6 +86,20 @@ POST /api/research/merge       { nodeId, title, outcome, rq?, finding?, contribu
 
 To watch an agent use the API, start the app and ask it to use `research-api-demo`, or run `node scripts/research-api-demo.mjs` yourself. The demo intentionally writes test nodes into the local roadmap.
 
+### Fintech micro-study example
+
+![A completed synthetic fintech micro-study in the research map](docs/fintech-agent-demo.png)
+
+This small, deterministic agent-run example asks whether behavioral transaction signals improve a lending-risk screen over a debt-to-income-only rule. It records a baseline, a behavioral branch, a rejected strict-rule branch, and a synthesis that answers the RQ. The resulting synthetic scores were F1 `0.637` (DTI only), `0.758` (behavioral score), and `0.536` (strict high-DTI rule).
+
+Run the reproducible computation with no third-party Python packages:
+
+```bash
+python scripts/fintech_micro_research.py
+```
+
+It writes its JSON artifact under your ignored `research_data/artifacts/` directory. The screenshot is documentation only; it does not make a clone track demo research data.
+
 ## Using this as a template
 
 This repo is meant to be reused: one checkout per research project, each with its own `research_data/`.
