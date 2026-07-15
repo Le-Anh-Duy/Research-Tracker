@@ -39,6 +39,7 @@ The browser never reads `research_data/` directly. The Express server is the fil
 | Node editor | `src/components/Sidebar.jsx` | Node metadata, tags, Markdown log, lifecycle actions |
 | Timeline UI | `src/components/TimelineBar.jsx` | Month/milestone editing, derived status, multi-node focus filter |
 | Research compass | `CompassView.jsx`, `QuestionsView.jsx` | Topic/objective editing, RQ status, answers, evidence projection |
+| Personal settings | `SettingsView.jsx`, `preferences.js` | Browser-local font and theme preferences; no research-data writes |
 | Review | `src/components/ReviewView.jsx` | Derived list of open objectives, evidence gaps, branches, and milestones |
 | HTTP client | `src/api.js` | Fetch wrappers; converts non-2xx responses into errors |
 | API + storage | `server.js` | Validates requests, owns file reads/writes, semantic research actions, optional Ollama call |

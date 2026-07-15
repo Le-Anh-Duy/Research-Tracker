@@ -4,7 +4,7 @@ const LAYERS = [
   { num: 3, key: 'layer3', label: 'Questions' },
 ];
 
-export default function TopBar({ context, view, onSetView, onOpenCompass, onOpenReview, onOpenHelp }) {
+export default function TopBar({ context, view, onSetView, onOpenCompass, onOpenReview, onOpenSettings, onOpenHelp }) {
   return (
     <header className="topbar">
       <div className="brand">Research <em>Navigator</em></div>
@@ -22,6 +22,7 @@ export default function TopBar({ context, view, onSetView, onOpenCompass, onOpen
         <button className={'view-tab' + (view === 'map' ? ' active' : '')} onClick={() => onSetView('map')}>Map</button>
         <button className={'view-tab' + (view === 'compass' ? ' active' : '')} onClick={onOpenCompass}>Compass</button>
         <button className={'view-tab' + (view === 'review' ? ' active' : '')} onClick={onOpenReview}>Review</button>
+        <button className={'view-tab' + (view === 'settings' ? ' active' : '')} onClick={onOpenSettings}>Settings</button>
         <button className={'help-button' + (view === 'help' ? ' active' : '')} aria-label="Open usage guide" title="Usage guide" onClick={onOpenHelp}>?</button>
       </nav>
     </header>

@@ -21,7 +21,7 @@ const SECTIONS = [
     title: '3. Work with nodes',
     body: (
       <>
-        <p>Double-click an empty area of the Map to create a node. Click a node to open its notes. Use the title, status, outcome, tags, and Markdown lab log to record what happened.</p>
+        <p>Double-click an empty area of the Map to create a node. Drag empty space to pan. Hold Ctrl while dragging to select several nodes, or Ctrl+click to add or remove one; then drag any selected node to move the group. Click a node normally to open its notes.</p>
         <p><strong>Work</strong> is the flexible default for implementation, datasets, reading, and preliminary analysis. <strong>Experiment</strong> tests a hypothesis. <strong>Decision</strong> records a choice and rationale. <strong>Synthesis</strong> combines results toward an RQ. <strong>Note / dump</strong> accepts anything and carries no workflow expectation.</p>
         <p>Project, objective, and research-question nodes are structural anchors; add or edit objectives and questions in Compass. Milestones live in the timeline rather than becoming manual node types. A negative result is still useful evidence: mark it dead or merge it with a clear outcome.</p>
         <p>Delete a selected node from its sidebar. Its file and connected links are removed, and the graph can be restored with Undo.</p>

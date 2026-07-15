@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import QuestionsView from './QuestionsView';
 
 const objectiveText = (value = '') => value.replace(/^O\d+\s*:\s*/, '');
@@ -18,12 +18,10 @@ export default function CompassView({
   onUpdateQuestions,
   onJumpToNode,
 }) {
-  const [topic, setTopic] = useState(context.layer1);
+  const [topicDraft, setTopicDraft] = useState(null);
   const [objectiveDraft, setObjectiveDraft] = useState(null);
   const [objectiveError, setObjectiveError] = useState('');
   const objectiveLines = (context.layer2 || '').split('\n').filter(Boolean);
-
-  useEffect(() => setTopic(context.layer1), [context.layer1]);
 
   const openObjective = (node, index) => {
     setObjectiveError('');
@@ -56,7 +54,10 @@ export default function CompassView({
 
         <section className="compass-block">
           <label className="screen-label">Topic</label>
-          <textarea className="compass-topic" rows={2} value={topic} onChange={(event) => setTopic(event.target.value)} onBlur={() => topic !== context.layer1 && onSaveTopic(topic, () => setTopic(context.layer1))} />
+          <button className="compass-topic" type="button" onClick={() => setTopicDraft(context.layer1)}>
+            <strong>{context.layer1 || 'Topic has not been defined'}</strong>
+            <span>Open details</span>
+          </button>
         </section>
 
         <section className="compass-block">
@@ -123,6 +124,22 @@ export default function CompassView({
               {objectiveDraft.id && <button type="button" className="btn ghost" onClick={() => { const id = objectiveDraft.id; setObjectiveDraft(null); onJumpToNode(id); }}>Show on map</button>}
               <button type="button" className="btn ghost" onClick={() => setObjectiveDraft(null)}>Cancel</button>
               <button className="btn primary" disabled={!objectiveDraft.title.trim()}>Save</button>
+            </div>
+          </form>
+        </div>
+      )}
+      {topicDraft !== null && (
+        <div className="overlay" onClick={() => setTopicDraft(null)}>
+          <form className="modal objective-modal" onSubmit={(event) => { event.preventDefault(); if (topicDraft.trim() !== context.layer1) onSaveTopic(topicDraft.trim()); setTopicDraft(null); }} onClick={(event) => event.stopPropagation()}>
+            <p className="screen-kicker">TOPIC DETAILS</p>
+            <h2>Inspect and edit topic</h2>
+            <div className="field">
+              <label>Research topic</label>
+              <textarea autoFocus rows={8} value={topicDraft} onChange={(event) => setTopicDraft(event.target.value)} />
+            </div>
+            <div className="modal-actions">
+              <button type="button" className="btn ghost" onClick={() => setTopicDraft(null)}>Cancel</button>
+              <button className="btn primary" disabled={!topicDraft.trim()}>Save</button>
             </div>
           </form>
         </div>

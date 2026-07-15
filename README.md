@@ -27,6 +27,7 @@ Production-ish: `npm run build && npm start` → everything on http://localhost:
 
 - **Double-click the canvas** → new Work node. Choose Experiment, Decision, Synthesis, or Note / dump when its meaning is more specific. See [the research workflow](docs/RESEARCH_WORKFLOW.md).
 - **Drag between node handles** → connect steps.
+- **Drag empty canvas** → pan the map. Hold Ctrl while dragging to select several nodes, or Ctrl+click to add/remove one; drag a selected node to move the group.
 - **Tags** → in the sidebar, type a tag and hit Enter (e.g. a teammate's name). Tags show as small pills on the node card, and group the "active branches" section in a `research-export` snapshot — the closest thing this app has to task assignment.
 - **Mark dead end** → branch grays out with strikethrough. It stays on the map: the record of what you already tried is half the value.
 - **Delete node** → a separate, low-key link at the bottom of the sidebar, behind a confirm dialog. This is for genuine mistakes (an empty "untitled" node, a duplicate) — for an abandoned experiment, use "Mark dead end" instead, since that's what keeps the record. There's no keyboard-shortcut delete, on purpose.
@@ -35,6 +36,7 @@ Production-ish: `npm run build && npm start` → everything on http://localhost:
 - **Synthesis nodes** → mark a node as a *synthesis node* (dashed, in the sidebar) when its job is writing analysis that connects several experiments to a question, rather than running code. These are the "stop and think" checkpoints that keep synthesis from being dumped into the final month.
 - **Questions view** (top-bar tab) → the destination board. Each RQ shows its status (open / partial / answered), a **living answer** you write and re-write as evidence lands, and the list of experiments feeding it (with their positive/negative/mixed findings). Click any evidence to jump to it on the Map.
 - **Compass objectives** → each objective opens in a detail modal for editing its wording, exit criterion, and completion state. Add Objective creates a new objective anchor; “Show on map” is an explicit secondary action.
+- **Personal settings** → choose a Vietnamese-safe UI font and light, dark, or system theme. Preferences stay in the current browser and never modify research files.
 - **Research-question anchors** → every RQ has its own Markdown-backed node and can receive graph links independently from its objective. Question wording remains owned by Compass.
 - The top bar always shows your compass (topic / objectives / questions). **The app never lets AI rewrite these, or your RQ answers** — only you move the compass and only you write the conclusions.
 - The collapsible timeline panel on the left shows every month/milestone. Milestones have no manual checkbox — a milestone completes automatically once every linked node is merged. Clicking a linked milestone focuses all of its nodes and dims unrelated work; click the filter chip or empty canvas to clear the focus.

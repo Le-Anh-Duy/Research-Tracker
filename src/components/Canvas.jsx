@@ -4,6 +4,7 @@ import {
   Background,
   Controls,
   MarkerType,
+  SelectionMode,
   addEdge,
   applyEdgeChanges,
   applyNodeChanges,
@@ -13,6 +14,7 @@ import '@xyflow/react/dist/style.css';
 import * as api from '../api';
 import ResearchNode from './ResearchNode';
 import { focusState } from '../roadmap';
+import { applySelectionChanges, detailSelectionForClick } from '../selection';
 
 const nodeTypes = { research: ResearchNode };
 const STEP_COLOR = '#b9b2a3';
@@ -38,18 +40,20 @@ export default function Canvas({
 }) {
   const { screenToFlowPosition } = useReactFlow();
   const [hoverEdge, setHoverEdge] = useState(null);
+  const [selectedNodeIds, setSelectedNodeIds] = useState([]);
   const [newNode, setNewNode] = useState(null);
   const [createError, setCreateError] = useState('');
 
   const nodes = graph.nodes.map((n) => ({
     ...n,
     type: 'research',
+    selected: selectedNodeIds.includes(n.id),
     data: {
       ...n.data,
       title: n.data.questionId
         ? `${n.data.questionId}: ${questions.find((question) => question.id === n.data.questionId)?.text || n.data.title}`
         : n.data.title,
-      isSelected: n.id === selectedId,
+      isSelected: n.id === selectedId || selectedNodeIds.includes(n.id),
       focusState: focusState(n.id, focusedNodeIds),
       role:
         n.data.role ||
@@ -89,6 +93,8 @@ export default function Canvas({
   // Node position/dimension changes are layout noise - save but don't checkpoint.
   const onNodesChange = useCallback(
     (changes) => {
+      const selection = changes.filter((c) => c.type === 'select');
+      if (selection.length) setSelectedNodeIds((ids) => applySelectionChanges(ids, selection));
       const real = changes.filter((c) => c.type !== 'select');
       if (real.length) {
         updateGraph((g) => ({ ...g, nodes: applyNodeChanges(real, g.nodes) }), { checkpoint: false });
@@ -171,33 +177,42 @@ export default function Canvas({
         nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onSelectionStart={() => {
+          onSelect(null);
+          onSelectEdge(null);
+        }}
         onConnect={onConnect}
         onNodeClick={(e, node) => {
           if (focusedNodeIds.length && !focusedNodeIds.includes(node.id)) onClearFocus();
-          onSelect(node.id);
+          onSelect(detailSelectionForClick(node.id, e.ctrlKey));
           onSelectEdge(null);
         }}
         onEdgeClick={(e, edge) => {
+          setSelectedNodeIds([]);
           onSelect(null);
           onSelectEdge(edge.id);
         }}
         onEdgeMouseEnter={(e, edge) => setHoverEdge(edge.id)}
         onEdgeMouseLeave={() => setHoverEdge(null)}
         onPaneClick={() => {
+          setSelectedNodeIds([]);
           onClearFocus();
           onSelect(null);
           onSelectEdge(null);
         }}
         zoomOnDoubleClick={false}
+        selectionKeyCode="Control"
+        multiSelectionKeyCode="Control"
+        selectionMode={SelectionMode.Partial}
         deleteKeyCode={null}
         fitView
         fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
       >
-        <Background color="#c9c3b4" gap={22} size={1.5} />
+        <Background color="var(--line)" gap={22} size={1.5} />
         <Controls showInteractive={false} />
       </ReactFlow>
       <div className="canvas-hint">
-        double-click empty space to add work · drag handles to connect · Ctrl+Z to undo
+        drag to pan · Ctrl+drag to select · Ctrl+click to add/remove nodes
       </div>
       {newNode && (
         <div className="overlay" onClick={() => setNewNode(null)} onDoubleClick={(event) => event.stopPropagation()}>

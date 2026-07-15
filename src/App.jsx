@@ -10,8 +10,10 @@ import InitWizard from './components/InitWizard';
 import HelpView from './components/HelpView';
 import CompassView from './components/CompassView';
 import ReviewView from './components/ReviewView';
+import SettingsView from './components/SettingsView';
 import ChangeReviewModal from './components/ChangeReviewModal';
 import { buildInitialRoadmap, questionNodeId, reconcileQuestionNodes } from './roadmap';
+import { loadPreferences } from './preferences';
 
 export default function App() {
   const [initialized, setInitialized] = useState(null); // null = loading
@@ -20,7 +22,8 @@ export default function App() {
   const [context, setContext] = useState({ layer1: '', layer2: '', layer3: '' });
   const [timeline, setTimeline] = useState({ months: [] });
   const [questions, setQuestions] = useState([]);
-  const [view, setView] = useState('map'); // 'map' | 'compass' | 'review' | 'help'
+  const [preferences, setPreferences] = useState(() => loadPreferences(localStorage));
+  const [view, setView] = useState('map'); // map | compass | review | settings | help
   const [selectedId, setSelectedId] = useState(null);
   const [nodeFocus, setNodeFocus] = useState(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
@@ -39,6 +42,12 @@ export default function App() {
   const lastCk = useRef(0);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.dataset.font = preferences.font;
+    document.documentElement.dataset.theme = preferences.theme;
+    localStorage.setItem('research-navigator-preferences', JSON.stringify(preferences));
+  }, [preferences]);
 
   useEffect(() => {
     Promise.all([api.getGraph(), api.getContext(), api.getTimeline(), api.getQuestions()])
@@ -515,6 +524,7 @@ export default function App() {
         onSetView={setView}
         onOpenCompass={() => setView('compass')}
         onOpenReview={() => setView('review')}
+        onOpenSettings={() => setView('settings')}
         onOpenHelp={() => setView('help')}
       />
       {view === 'map' && (
@@ -589,6 +599,7 @@ export default function App() {
           onOpenCompass={() => setView('compass')}
         />
       )}
+      {view === 'settings' && <SettingsView preferences={preferences} onChange={setPreferences} />}
       {view === 'help' && <HelpView onBack={() => setView('map')} />}
       {pendingChange && <ChangeReviewModal change={pendingChange} onApply={applyChange} onClose={closeChangeReview} />}
       {mergingNode && (
