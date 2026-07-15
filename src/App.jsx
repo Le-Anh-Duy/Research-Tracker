@@ -14,6 +14,7 @@ import SettingsView from './components/SettingsView';
 import ChangeReviewModal from './components/ChangeReviewModal';
 import { buildInitialRoadmap, questionNodeId, reconcileQuestionNodes } from './roadmap';
 import { loadPreferences } from './preferences';
+import { classifyGraphEdges, relatedNodeIds } from './graphView';
 
 export default function App() {
   const [initialized, setInitialized] = useState(null); // null = loading
@@ -407,9 +408,21 @@ export default function App() {
       return;
     }
     const ids = milestone.nodeIds.filter((id) => graphRef.current?.nodes.some((node) => node.id === id));
-    setNodeFocus(ids.length ? { milestoneId: milestone.id, label: milestone.title, ids } : null);
+    setNodeFocus(ids.length ? { key: `milestone:${milestone.id}`, milestoneId: milestone.id, label: milestone.title, ids } : null);
     setSelectedId(ids[0] || null);
     setSelectedEdgeId(null);
+  }, [nodeFocus]);
+
+  const focusGraphNode = useCallback((nodeId) => {
+    const node = graphRef.current?.nodes.find((item) => item.id === nodeId);
+    if (!node) return;
+    const key = `node:${nodeId}`;
+    if (nodeFocus?.key === key) {
+      setNodeFocus(null);
+      return;
+    }
+    const ids = relatedNodeIds(graphRef.current, nodeId);
+    if (ids.length) setNodeFocus({ key, label: node.data.title, ids });
   }, [nodeFocus]);
 
   // Wizard output -> context + node files + graph + timeline + questions, then enter the app.
@@ -496,6 +509,7 @@ export default function App() {
   const selectedNode = displayNode(graph.nodes.find((n) => n.id === selectedId));
   const mergingNode = graph.nodes.find((n) => n.id === mergingId);
   const nodesById = Object.fromEntries(graph.nodes.map((n) => [n.id, displayNode(n)]));
+  const edgesById = Object.fromEntries(classifyGraphEdges(graph).map((edge) => [edge.id, edge]));
   const milestoneNodeIds = new Set(
     timeline.months.flatMap((month) => month.milestones.flatMap((milestone) => milestone.nodeIds || []))
   );
@@ -504,10 +518,10 @@ export default function App() {
       const next = { months };
       await api.putTimeline(next);
       setTimeline(next);
-      if (nodeFocus) {
+      if (nodeFocus?.milestoneId) {
         const milestone = months.flatMap((month) => month.milestones).find((item) => item.id === nodeFocus.milestoneId);
         const ids = milestone?.nodeIds.filter((id) => nodesById[id]) || [];
-        setNodeFocus(milestone && ids.length ? { milestoneId: milestone.id, label: milestone.title, ids } : null);
+        setNodeFocus(milestone && ids.length ? { key: `milestone:${milestone.id}`, milestoneId: milestone.id, label: milestone.title, ids } : null);
       }
       return true;
     } catch (error) {
@@ -541,9 +555,11 @@ export default function App() {
                 selectedEdgeId={selectedEdgeId}
                 focusedNodeIds={nodeFocus?.ids || []}
                 focusLabel={nodeFocus?.label || ''}
+                focusKey={nodeFocus?.key || ''}
                 onSelect={setSelectedId}
                 onSelectEdge={setSelectedEdgeId}
                 onClearFocus={() => setNodeFocus(null)}
+                onFocusNode={focusGraphNode}
                 onUndo={undo}
                 onRedo={redo}
                 canUndo={canUndo}
@@ -564,7 +580,7 @@ export default function App() {
             {!selectedNode && selectedEdgeId && (
               <Sidebar
                 key={selectedEdgeId}
-                edge={graph.edges.find((e) => e.id === selectedEdgeId)}
+                edge={edgesById[selectedEdgeId]}
                 nodesById={nodesById}
                 onPatchEdge={(patch) => patchEdgeData(selectedEdgeId, patch)}
                 onDeleteEdge={() => deleteEdge(selectedEdgeId)}

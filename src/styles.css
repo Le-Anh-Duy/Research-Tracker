@@ -324,7 +324,7 @@ textarea { resize: vertical; line-height: 1.5; }
 
 /* ---- Research node card ---- */
 .rnode {
-  width: 220px;
+  width: 190px;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -332,6 +332,13 @@ textarea { resize: vertical; line-height: 1.5; }
   font-family: var(--sans);
   transition: opacity 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
 }
+.rnode.level-0 { width: 250px; }
+.rnode.level-1 { width: 230px; }
+.rnode.level-2 { width: 210px; }
+.rnode.level-4 { width: 170px; }
+.rnode.zoom-compact { width: 190px; padding: 8px 10px; }
+.rnode.zoom-overview { width: 150px; padding: 7px 9px; }
+.rnode.zoom-overview .rnode-title { font-size: 11px; }
 .rnode.focused:not(.sel) { border-color: var(--focus); box-shadow: 0 0 0 2px var(--focus-soft); }
 .rnode.dimmed { opacity: 0.18; }
 .rnode.sel { border: 2px solid var(--focus); background: var(--selected); box-shadow: 0 0 0 4px var(--focus-soft), 0 0 18px rgba(23, 107, 120, 0.32); }
@@ -354,6 +361,7 @@ textarea { resize: vertical; line-height: 1.5; }
   line-height: 1.4;
   overflow-wrap: break-word;
 }
+.rnode-fold { margin-top: 6px; color: var(--focus); font-size: 10px; line-height: 1.35; }
 .rnode-footer { margin-top: 7px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .rnode-status {
   display: inline-block;

@@ -4,7 +4,9 @@ const FINDING_MARK = { positive: '+', negative: '−', neutral: '~' };
 
 export default function ResearchNode({ data }) {
   const isSynthesis = data.kind === 'synthesis';
-  const isModule = data.kind === 'module';
+  const isModule = data.role === 'module' || data.kind === 'module';
+  const showDetail = data.detailLevel === 'detail';
+  const showFooter = data.detailLevel !== 'overview';
   const hasCustomColor = Boolean(data.color);
   const cls = [
     'rnode',
@@ -16,6 +18,8 @@ export default function ResearchNode({ data }) {
     hasCustomColor ? 'custom-color' : '',
     data.isSelected ? 'sel' : '',
     data.focusState,
+    'level-' + data.importance,
+    'zoom-' + data.detailLevel,
   ]
     .filter(Boolean)
     .join(' ');
@@ -23,13 +27,14 @@ export default function ResearchNode({ data }) {
   return (
     <div className={cls} style={data.color ? { '--node-color': data.color } : undefined}>
       <Handle type="target" position={Position.Top} />
-      <div className="rnode-role">{data.role}</div>
+      {data.detailLevel !== 'overview' && <div className="rnode-role">{data.role}</div>}
       <div className="rnode-title">
         {isSynthesis && <span className="rnode-kind">◆ </span>}
         {data.title}
       </div>
-      {data.outcome && <div className="rnode-outcome">{data.outcome}</div>}
-      <div className="rnode-footer">
+      {data.foldSummary && <div className="rnode-fold">{data.foldSummary.total} folded · {data.foldSummary.merged} merged · {data.foldSummary.dead} dead</div>}
+      {showDetail && data.outcome && <div className="rnode-outcome">{data.outcome}</div>}
+      {showFooter && <div className="rnode-footer">
         <span className="rnode-status">{data.status}</span>
         {data.anchor && data.met && <span className="rnode-met">✓ met</span>}
         {data.rq && (
@@ -38,12 +43,12 @@ export default function ResearchNode({ data }) {
             {data.rq}
           </span>
         )}
-        {(data.tags || []).map((t) => (
+        {showDetail && (data.tags || []).map((t) => (
           <span key={t} className="rnode-tag">
             {t}
           </span>
         ))}
-      </div>
+      </div>}
       <Handle type="source" position={Position.Bottom} />
     </div>
   );

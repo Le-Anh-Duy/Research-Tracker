@@ -6,6 +6,7 @@ const ROLES = [
   ['work', 'Work'],
   ['experiment', 'Experiment'],
   ['decision', 'Decision'],
+  ['module', 'Module / branch'],
   ['synthesis', 'Synthesis'],
   ['note', 'Note / dump'],
 ];
@@ -54,6 +55,7 @@ export default function Sidebar({
   const isAnchor = Boolean(node?.data?.anchor);
   const role = node?.data?.role || (node?.data?.kind === 'synthesis' ? 'synthesis' : node?.data?.kind === 'module' ? 'module' : 'experiment');
   const isSynthesis = role === 'synthesis';
+  const isModule = role === 'module';
   const isQuestion = role === 'research-question';
   const isObjective = role === 'objective';
   const tags = node?.data?.tags || [];
@@ -80,7 +82,7 @@ export default function Sidebar({
     setTagDraft('');
   };
 
-  const changeRole = (nextRole) => onPatch({ role: nextRole, kind: nextRole === 'synthesis' ? 'synthesis' : undefined });
+  const changeRole = (nextRole) => onPatch({ role: nextRole, kind: ['synthesis', 'module'].includes(nextRole) ? nextRole : undefined });
 
   const handleDeleteNode = () => {
     if (window.confirm(`Delete "${node.data.title}" and its notes? Undo is available until this page is reloaded.\n\nUse "Mark dead end" instead when the work was a real attempt.`)) onDelete();
@@ -93,6 +95,11 @@ export default function Sidebar({
         <div className="field">
           <label>Connection</label>
           <input type="text" readOnly value={`${nodesById[edge.source]?.data?.title || edge.source} → ${nodesById[edge.target]?.data?.title || edge.target}`} />
+        </div>
+        <div className="field">
+          <label>Graph behavior</label>
+          <input type="text" readOnly value={edge.data?.flowKind === 'reference' ? `Reference${edge.data.flowReason ? ` — ${edge.data.flowReason}` : ''}` : 'Dependency'} />
+          <small className="field-help">Only dependency edges are followed by Focus and Fold.</small>
         </div>
         <div className="field log-wrap">
           <label>Why this connection exists</label>
@@ -108,7 +115,7 @@ export default function Sidebar({
 
   return (
     <aside className="sidebar">
-      <SidebarHeader title={isQuestion ? 'Research question' : isObjective ? 'Objective' : role === 'project' ? 'Project' : isSynthesis ? 'Synthesis' : 'Research work'} onClose={onClose} />
+      <SidebarHeader title={isQuestion ? 'Research question' : isObjective ? 'Objective' : role === 'project' ? 'Project' : isSynthesis ? 'Synthesis' : isModule ? 'Module' : 'Research work'} onClose={onClose} />
 
       <div className="field">
         <label>Title</label>

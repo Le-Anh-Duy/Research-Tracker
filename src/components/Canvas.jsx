@@ -15,6 +15,7 @@ import * as api from '../api';
 import ResearchNode from './ResearchNode';
 import { focusState } from '../roadmap';
 import { applySelectionChanges, detailSelectionForClick } from '../selection';
+import { canFoldNode, detailLevelForZoom, foldBranchIds, foldProjection, nodeImportance } from '../graphView';
 
 const nodeTypes = { research: ResearchNode };
 const STEP_COLOR = '#b9b2a3';
@@ -30,9 +31,11 @@ export default function Canvas({
   selectedEdgeId,
   focusedNodeIds,
   focusLabel,
+  focusKey,
   onSelect,
   onSelectEdge,
   onClearFocus,
+  onFocusNode,
   onUndo,
   onRedo,
   canUndo,
@@ -40,11 +43,15 @@ export default function Canvas({
 }) {
   const { screenToFlowPosition } = useReactFlow();
   const [hoverEdge, setHoverEdge] = useState(null);
+  const [zoom, setZoom] = useState(1);
+  const [foldedRootIds, setFoldedRootIds] = useState([]);
   const [selectedNodeIds, setSelectedNodeIds] = useState([]);
   const [newNode, setNewNode] = useState(null);
   const [createError, setCreateError] = useState('');
 
-  const nodes = graph.nodes.map((n) => ({
+  const detailLevel = detailLevelForZoom(zoom);
+  const projection = foldProjection(graph, foldedRootIds, focusedNodeIds);
+  const nodes = projection.nodes.map((n) => ({
     ...n,
     type: 'research',
     selected: selectedNodeIds.includes(n.id),
@@ -54,6 +61,9 @@ export default function Canvas({
         ? `${n.data.questionId}: ${questions.find((question) => question.id === n.data.questionId)?.text || n.data.title}`
         : n.data.title,
       isSelected: n.id === selectedId || selectedNodeIds.includes(n.id),
+      detailLevel,
+      importance: nodeImportance(n),
+      foldSummary: projection.summaries[n.id],
       focusState: focusState(n.id, focusedNodeIds),
       role:
         n.data.role ||
@@ -71,24 +81,36 @@ export default function Canvas({
     },
   }));
 
-  const edges = graph.edges.map((e) => {
+  const edges = projection.edges.map((e) => {
     const merged = e.data?.kind === 'merge';
+    const folded = e.data?.kind === 'fold';
+    const reference = e.data?.flowKind === 'reference';
     const hovered = e.id === hoverEdge;
     const selected = e.id === selectedEdgeId;
     const focusMatch = !focusedNodeIds.length || (focusedNodeIds.includes(e.source) && focusedNodeIds.includes(e.target));
-    const color = selected ? '#1f1e1d' : hovered ? '#b3452e' : merged ? MERGE_COLOR : STEP_COLOR;
+    const color = selected ? '#1f1e1d' : hovered ? '#b3452e' : merged ? MERGE_COLOR : folded ? '#176b78' : STEP_COLOR;
     return {
       ...e,
       style: {
         stroke: color,
         strokeWidth: selected || hovered ? 2.5 : 1.5,
-        strokeDasharray: merged ? '6 4' : undefined,
+        strokeDasharray: merged ? '6 4' : folded ? '2 4' : reference ? '3 5' : undefined,
         cursor: 'pointer',
-        opacity: focusMatch ? 1 : 0.12,
+        opacity: focusMatch ? reference ? 0.55 : 1 : 0.12,
       },
       markerEnd: { type: MarkerType.ArrowClosed, color },
     };
   });
+  const selectedGraphNode = graph.nodes.find((node) => node.id === selectedId);
+  const canFocusSelected = ['objective', 'research-question'].includes(selectedGraphNode?.data.role);
+  const canFoldSelected = canFoldNode(selectedGraphNode);
+  const selectedIsFolded = foldedRootIds.includes(selectedId);
+  const selectedFoldCount = canFoldSelected ? foldBranchIds(graph, selectedId, foldedRootIds).length : 0;
+
+  const toggleFold = () => {
+    setFoldedRootIds((ids) => ids.includes(selectedId) ? ids.filter((id) => id !== selectedId) : [...ids, selectedId]);
+    setSelectedNodeIds(selectedId ? [selectedId] : []);
+  };
 
   // Node position/dimension changes are layout noise - save but don't checkpoint.
   const onNodesChange = useCallback(
@@ -138,7 +160,7 @@ export default function Canvas({
     const title = newNode.title.trim();
     if (!title) return;
     const id = 'n_' + Date.now();
-    const kind = newNode.role === 'synthesis' ? 'synthesis' : undefined;
+    const kind = ['synthesis', 'module'].includes(newNode.role) ? newNode.role : undefined;
     try {
       await api.putNode(id, `# ${title}\n`);
       updateGraph(
@@ -165,8 +187,18 @@ export default function Canvas({
         <button className="undo-btn" onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)">
           Redo
         </button>
+        {canFocusSelected && (
+          <button className="undo-btn" onClick={() => onFocusNode(selectedId)}>
+            {focusKey === `node:${selectedId}` ? 'Clear focus' : 'Focus related'}
+          </button>
+        )}
+        {canFoldSelected && (
+          <button className="undo-btn" onClick={toggleFold} disabled={!selectedIsFolded && !selectedFoldCount} title={!selectedIsFolded && !selectedFoldCount ? 'No private outgoing dependency branch to collapse' : undefined}>
+            {selectedIsFolded ? 'Expand branch' : `Collapse branch (${selectedFoldCount})`}
+          </button>
+        )}
         {focusedNodeIds.length > 0 && (
-          <button className="focus-chip" onClick={onClearFocus} title="Clear milestone filter">
+          <button className="focus-chip" onClick={onClearFocus} title="Clear graph focus">
             {focusLabel} · {focusedNodeIds.length} nodes <span aria-hidden="true">×</span>
           </button>
         )}
@@ -182,6 +214,7 @@ export default function Canvas({
           onSelectEdge(null);
         }}
         onConnect={onConnect}
+        onViewportChange={(viewport) => setZoom(viewport.zoom)}
         onNodeClick={(e, node) => {
           if (focusedNodeIds.length && !focusedNodeIds.includes(node.id)) onClearFocus();
           onSelect(detailSelectionForClick(node.id, e.ctrlKey));
@@ -189,8 +222,8 @@ export default function Canvas({
         }}
         onEdgeClick={(e, edge) => {
           setSelectedNodeIds([]);
-          onSelect(null);
-          onSelectEdge(edge.id);
+          onSelect(edge.data?.kind === 'fold' ? edge.source : null);
+          onSelectEdge(edge.data?.kind === 'fold' ? null : edge.id);
         }}
         onEdgeMouseEnter={(e, edge) => setHoverEdge(edge.id)}
         onEdgeMouseLeave={() => setHoverEdge(null)}
@@ -212,7 +245,7 @@ export default function Canvas({
         <Controls showInteractive={false} />
       </ReactFlow>
       <div className="canvas-hint">
-        drag to pan · Ctrl+drag to select · Ctrl+click to add/remove nodes
+        drag to pan · Ctrl+drag/click to select · solid edges are dependencies
       </div>
       {newNode && (
         <div className="overlay" onClick={() => setNewNode(null)} onDoubleClick={(event) => event.stopPropagation()}>
@@ -230,6 +263,7 @@ export default function Canvas({
                 <option value="work">Work</option>
                 <option value="experiment">Experiment</option>
                 <option value="decision">Decision</option>
+                <option value="module">Module / branch</option>
                 <option value="synthesis">Synthesis</option>
                 <option value="note">Note / dump</option>
               </select>

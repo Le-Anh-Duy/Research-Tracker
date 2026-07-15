@@ -28,6 +28,8 @@ Production-ish: `npm run build && npm start` → everything on http://localhost:
 - **Double-click the canvas** → new Work node. Choose Experiment, Decision, Synthesis, or Note / dump when its meaning is more specific. See [the research workflow](docs/RESEARCH_WORKFLOW.md).
 - **Drag between node handles** → connect steps.
 - **Drag empty canvas** → pan the map. Hold Ctrl while dragging to select several nodes, or Ctrl+click to add/remove one; drag a selected node to move the group.
+- **Zoom / Focus / Fold** → zoom simplifies cards; Objective/RQ focus dims unrelated work; Synthesis/Decision/Module can collapse private outgoing branches. These are UI projections and never rewrite research data.
+- **Solid vs dashed edges** → solid edges form the derived dependency DAG. Backedges, evidence, and cycle-closing edges stay visible as dashed references and are not traversed by Focus or Fold.
 - **Tags** → in the sidebar, type a tag and hit Enter (e.g. a teammate's name). Tags show as small pills on the node card, and group the "active branches" section in a `research-export` snapshot — the closest thing this app has to task assignment.
 - **Mark dead end** → branch grays out with strikethrough. It stays on the map: the record of what you already tried is half the value.
 - **Delete node** → a separate, low-key link at the bottom of the sidebar, behind a confirm dialog. This is for genuine mistakes (an empty "untitled" node, a duplicate) — for an abandoned experiment, use "Mark dead end" instead, since that's what keeps the record. There's no keyboard-shortcut delete, on purpose.

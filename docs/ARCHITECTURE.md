@@ -36,6 +36,7 @@ The browser never reads `research_data/` directly. The Express server is the fil
 | UI composition | `src/App.jsx` | Loads roadmap state, coordinates views, selections, structural-change review, persistence, undo/redo |
 | Roadmap scaffold | `src/roadmap.js` | Pure conversion from wizard input to context, graph, node notes, questions, and timeline |
 | Graph UI | `src/components/Canvas.jsx` | React Flow projection, node/edge interaction, canvas node creation |
+| Graph projection rules | `src/graphView.js` | Importance, dependency DAG, semantic zoom, focus traversal, and safe branch folding |
 | Node editor | `src/components/Sidebar.jsx` | Node metadata, tags, Markdown log, lifecycle actions |
 | Timeline UI | `src/components/TimelineBar.jsx` | Month/milestone editing, derived status, multi-node focus filter |
 | Research compass | `CompassView.jsx`, `QuestionsView.jsx` | Topic/objective editing, RQ status, answers, evidence projection |
@@ -74,6 +75,19 @@ Each question also has a structural graph node with `role: "research-question"` 
 ### Graph writes
 
 Graph edits update React state first. Continuous edits are debounced; discrete lifecycle edits save immediately. Writes carry `expectedRevision`. A `409 GRAPH_CONFLICT` replaces the browser copy with the latest server graph and asks the user to reapply the edit.
+
+### Graph projection contract
+
+The stored graph may contain dependency, evidence, and reference relationships. The Map derives a dependency DAG without rewriting those edges. Node importance is fixed by role: Project → Objective/RQ → Module/Synthesis/Decision → Work/Experiment → Note. An edge from a lower-importance node to a higher one is a reference backedge. A same-level edge that would close a dependency cycle is also a reference; for equal-level conflicts, the lexically earlier edge ID remains the dependency so classification is stable after reload. Merge edges are always evidence references. Focus and Fold traverse only dependency edges.
+
+Map projections run in this order:
+
+1. Classify stored edges as dependency or reference.
+2. Fold private outgoing dependency descendants into a selected Synthesis, Decision, or Module. Shared descendants remain visible and boundary relationships are projected onto the fold root.
+3. Apply Focus. If a focused node belongs to a folded branch, that fold is temporarily expanded until focus is cleared.
+4. Apply semantic zoom to card content: overview below `0.55`, compact below `0.85`, and detail otherwise. Zoom never removes nodes.
+
+Zoom, focus, folds, and multi-selection are UI-only. They never enter Markdown or `graph.json`; folds reset on reload. Normal click opens details, Ctrl+click toggles selection, Ctrl+drag box-selects, and plain drag pans.
 
 ### Node notes
 

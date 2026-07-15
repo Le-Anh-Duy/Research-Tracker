@@ -22,7 +22,8 @@ const SECTIONS = [
     body: (
       <>
         <p>Double-click an empty area of the Map to create a node. Drag empty space to pan. Hold Ctrl while dragging to select several nodes, or Ctrl+click to add or remove one; then drag any selected node to move the group. Click a node normally to open its notes.</p>
-        <p><strong>Work</strong> is the flexible default for implementation, datasets, reading, and preliminary analysis. <strong>Experiment</strong> tests a hypothesis. <strong>Decision</strong> records a choice and rationale. <strong>Synthesis</strong> combines results toward an RQ. <strong>Note / dump</strong> accepts anything and carries no workflow expectation.</p>
+        <p>Zooming out progressively simplifies node cards without removing work. Select an Objective or RQ and choose <strong>Focus related</strong> to dim unrelated nodes. Select a Synthesis, Decision, or Module and choose <strong>Collapse branch</strong> to fold its private outgoing dependency branch.</p>
+        <p><strong>Work</strong> is the flexible default. <strong>Experiment</strong> tests a hypothesis. <strong>Decision</strong> records a choice. <strong>Module</strong> owns a planned dependency branch. <strong>Synthesis</strong> combines results toward an RQ. <strong>Note / dump</strong> accepts anything and carries no workflow expectation.</p>
         <p>Project, objective, and research-question nodes are structural anchors; add or edit objectives and questions in Compass. Milestones live in the timeline rather than becoming manual node types. A negative result is still useful evidence: mark it dead or merge it with a clear outcome.</p>
         <p>Delete a selected node from its sidebar. Its file and connected links are removed, and the graph can be restored with Undo.</p>
       </>
@@ -33,6 +34,7 @@ const SECTIONS = [
     body: (
       <>
         <p>Drag from a node handle to another node to create a link. Links describe dependency or reasoning flow. Click a link to inspect and explain it; clicking never deletes it.</p>
+        <p>Solid links are dependencies and run from more important structure toward smaller work. Dashed links are evidence, backedges, or links that would close a cycle; they remain visible but Focus and Fold do not traverse them.</p>
         <p>With a link selected, choose Delete link or press Delete/Backspace. Use Ctrl/Cmd+Z to undo and Ctrl/Cmd+Shift+Z (or Ctrl/Cmd+Y) to redo graph changes.</p>
       </>
     ),

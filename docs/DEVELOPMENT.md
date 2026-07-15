@@ -20,6 +20,7 @@ The Vite UI runs on `http://localhost:5173`; Express and Swagger run on `http://
 | --- | --- | --- | --- |
 | Initialize roadmap | `InitWizard`, `roadmap.js` | context, questions, timeline, node files, graph | `scripts/roadmap.test.mjs` |
 | Edit graph | `Canvas`, `App` | `GET/PUT /api/graph` with revision | create/drag/connect, reload |
+| Navigate large graphs | `Canvas`, `graphView.js` | UI-only projection | `scripts/graphView.test.mjs` + zoom/focus/fold combinations |
 | Edit node log | `Sidebar` | `GET/PUT /api/node/:id` | type, wait 1s, reload |
 | Merge evidence | `MergeModal`, `App` | graph + optional `/api/summarize` | test with Ollama on and off |
 | Edit compass/RQs | `CompassView`, `QuestionsView` | context/questions + change report | edit wording, review, reload |
@@ -80,6 +81,8 @@ The HTTP API uses this hydrated React Flow shape for compatibility. On disk, nod
 `obj` is a zero-based objective index or `-1`. `nodeIds` may be empty while work is only planned. There is no manual completion flag: status comes from linked graph nodes. Do not duplicate a node's status inside timeline data.
 
 Selecting a milestone is a view filter, not durable state: every linked node is highlighted, unrelated graph content is dimmed, and the first linked node opens in the Sidebar. Do not store this selection in `timeline.json`.
+
+The dependency DAG is derived by `graphView.js`, not stored as duplicate edge data. Traversal follows only importance-respecting, non-cycling dependency edges. Backedges, merge/evidence edges, and cycle-closing same-level edges remain visible references. Fold roots own outgoing private descendants; do not implement traversal directly in a component.
 
 ## Contracts for new development
 
