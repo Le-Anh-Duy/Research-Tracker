@@ -203,6 +203,16 @@ export default function App() {
     updateGraph((current) => ({ ...current, nodes: current.nodes.map((node) => ranks.has(node.id) ? { ...node, data: { ...node.data, priorityRank: ranks.get(node.id) } } : node) }), { immediate: true });
   }, [updateGraph]);
 
+  const exportPlan = useCallback(async () => {
+    const { filename, content } = await api.getPlanExport();
+    const url = URL.createObjectURL(new Blob([content], { type: 'text/markdown;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, []);
+
   const patchEdgeData = useCallback(
     (id, patch) => {
       updateGraph((g) => ({
@@ -628,6 +638,7 @@ export default function App() {
           timeline={timeline}
           onJumpToNode={jumpToNode}
           onOpenCompass={() => setView('compass')}
+          onExportPlan={exportPlan}
         />
       )}
       {view === 'settings' && <SettingsView preferences={preferences} onChange={setPreferences} />}

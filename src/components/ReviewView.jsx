@@ -1,7 +1,7 @@
 import { milestoneStatus } from '../timelineStatus';
 import { evidenceForQuestion, objectiveProgress } from '../../research-domain.js';
 
-export default function ReviewView({ nodes, edges, questions, timeline, onJumpToNode, onOpenCompass }) {
+export default function ReviewView({ nodes, edges, questions, timeline, onJumpToNode, onOpenCompass, onExportPlan }) {
   const active = nodes.filter((n) => n.data.status === 'active' && !n.data.anchor && n.data.role !== 'note');
   const objectives = nodes.filter((n) => n.data.role === 'objective');
   const gaps = questions.filter((question) => !evidenceForQuestion(question.id, nodes, edges).length);
@@ -23,6 +23,7 @@ export default function ReviewView({ nodes, edges, questions, timeline, onJumpTo
             <h1>Research review</h1>
             <p className="screen-lead">A short check-in before you decide what to do next.</p>
           </div>
+          <button className="btn ghost" onClick={onExportPlan}>Export plan (.md)</button>
         </header>
 
         {!hasWork && <div className="review-clear">No open gaps detected. Keep recording evidence and revisit this page after the next experiment.</div>}

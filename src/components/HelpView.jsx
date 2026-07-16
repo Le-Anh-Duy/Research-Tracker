@@ -71,6 +71,7 @@ export default function HelpView({ onBack }) {
     <ManualSection number="08" title="Work safely with agents and Git">
       <p>Agents inspect by default. Before editing they must name the files and structural changes, receive an explicit request, then use the shared CLI/API/MCP operations. Agents may organize and check methodology; they do not approve scientific claims.</p>
       <p>Journey is read-only. It may show status, commits, checkpoints, and historical graphs, but never commits, pulls, pushes, branches, merges, tags, checks out, or reverts. External experiment repositories keep raw data, runs, logs, and checkpoints; this workspace stores portable references and selected interpretations.</p>
+      <p>Use <em>Export plan (.md)</em> in Review for a deterministic hierarchy and Mermaid event timeline. Agents use the same exporter through the <code>research-export</code> skill instead of rereading the repository.</p>
     </ManualSection>
   </article></div>;
 }

@@ -91,6 +91,7 @@ reimplementing multi-file writes.
 - **Compass:** human-owned topic, objectives, questions, and answers.
 - **Evidence:** merged findings and syntheses grouped by RQ.
 - **Review:** gaps, open branches, and ready-for-review work.
+- **Export plan:** download a hierarchical Markdown report with a Mermaid event timeline from Review.
 - **Journey:** read-only Git activity and historical graph replay.
 - **Settings:** warm parchment or sepia-dark themes and Vietnamese-safe fonts.
 

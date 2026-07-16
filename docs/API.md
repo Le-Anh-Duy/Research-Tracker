@@ -25,6 +25,7 @@ node scripts/research-cli.mjs init --input project.json
 node scripts/research-cli.mjs state
 node scripts/research-cli.mjs refresh-state
 node scripts/research-cli.mjs apply --input operation.json
+npm run research:export -- --output PLAN_EXPORT.md
 ```
 
 Set `RESEARCH_DATA_DIR` when launching `npm run research:mcp` to target a
@@ -44,6 +45,7 @@ POST /api/research/log           append dated note
 POST /api/research/dead-end       preserve failed route
 POST /api/research/merge          merge result/synthesis and optional RQ evidence
 POST /api/research/apply          shared create/patch/connect/transition/objective operation
+GET  /api/research/export         deterministic hierarchy + Mermaid timeline Markdown
 ```
 
 Every structural write is validated. Agent workflows must inspect first,
