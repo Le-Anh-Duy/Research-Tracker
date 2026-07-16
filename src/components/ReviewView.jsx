@@ -1,10 +1,10 @@
 import { milestoneStatus } from '../timelineStatus';
-import { isEvidenceFor } from '../roadmap';
+import { evidenceForQuestion, objectiveProgress } from '../../research-domain.js';
 
-export default function ReviewView({ nodes, questions, timeline, onJumpToNode, onOpenCompass }) {
+export default function ReviewView({ nodes, edges, questions, timeline, onJumpToNode, onOpenCompass }) {
   const active = nodes.filter((n) => n.data.status === 'active' && !n.data.anchor && n.data.role !== 'note');
   const objectives = nodes.filter((n) => n.data.role === 'objective');
-  const gaps = questions.filter((question) => !nodes.some((node) => isEvidenceFor(node, question.id)));
+  const gaps = questions.filter((question) => !evidenceForQuestion(question.id, nodes, edges).length);
   const claims = nodes.filter((n) => n.data.status === 'merged' && n.data.rq && !n.data.contribution);
   const milestones = timeline.months.flatMap((month) => month.milestones.map((milestone) => ({
     ...milestone,
@@ -31,7 +31,7 @@ export default function ReviewView({ nodes, questions, timeline, onJumpToNode, o
           {objectives.filter((node) => !node.data.met).map((node) => (
             <ReviewRow key={node.id} onClick={() => onJumpToNode(node.id)}>
               <b>{node.data.title}</b>
-              <span>{node.data.exitCriteria || 'No exit criterion recorded yet.'}</span>
+              <span>{(() => { const progress = objectiveProgress(node.id, nodes, edges); return `${progress.complete} of ${progress.total} aspects synthesized${progress.readyForReview ? ' · ready for review' : ''}`; })()}</span>
             </ReviewRow>
           ))}
         </ReviewSection>

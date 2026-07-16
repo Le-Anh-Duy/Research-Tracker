@@ -7,11 +7,11 @@ description: Gather merged Research Navigator evidence for one research question
 
 The researcher owns the claim. Gather and draft; never decide the answer for them.
 
-1. Read `questions.json`; use the named RQ or ask which one.
-2. Read node frontmatter and collect every node whose `status` is `merged` and `rq` matches. Active nodes are planned work, not evidence.
-3. Read those node bodies and relevant edge documents when more context is needed. Read matching objective exit criteria and `met` state.
+1. Read `AGENTS.md`, `PROJECT.md`, and `STATE.md`, then `questions.json`; use the named RQ or ask which one.
+2. Find its research-question node and follow incoming `evidence` edges. Keep only merged source nodes. Objective membership and active work are not evidence.
+3. Read those source node bodies and the evidence-edge rationales. Follow `resolves` to relevant aspect syntheses and read related objective exit criteria.
 4. Show a compact evidence table. Separate support from contradiction/mixed findings and name uncovered parts of the RQ.
 5. Draft a bounded candidate answer with caveats, then ask the researcher to edit or approve it.
-6. Only after approval, update the RQ's `answer` and set `status` to `partial` or `answered` as directed.
+6. Before any write, name `questions.json` and the exact answer/status change. Only after explicit approval update it as directed, then refresh `STATE.md`.
 
-Do not modify node metadata or invent evidence links. Suggest a Synthesis node when longer analysis should remain on the map.
+Do not modify node metadata or invent evidence links. Suggest a Synthesis node when longer analysis should remain on the map. Distinguish evidence, inference, and uncertainty.

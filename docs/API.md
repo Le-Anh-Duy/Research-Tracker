@@ -1,148 +1,64 @@
-# Research Navigator API
+# Local API and agent surfaces
 
-The API is a local HTTP API for the Research Navigator app. It writes directly to `research_data/` and has no authentication. Use it only from a trusted local agent or local script.
+The HTTP API has no authentication and is for trusted localhost use. The CLI
+works while the web server is stopped; MCP is a thin JSON-RPC wrapper over the
+same project layer.
 
-Data shapes and cross-file invariants are documented in [DEVELOPMENT.md](DEVELOPMENT.md). Node and edge frontmatter is hidden behind the API; note endpoints read and write Markdown bodies only. Graph, question, and timeline writes that violate runtime contracts return HTTP `400`.
-
-Interactive Swagger UI: `http://localhost:3001/api-docs`
-
-OpenAPI JSON: `http://localhost:3001/api/openapi.json`
-
-Start the server:
-
-```bash
-npm run dev
-```
-
-The API is normally available at `http://localhost:3001`. To use another port:
-
-```powershell
-$env:PORT = 3011
-node server.js
-```
-
-## State
-
-### `GET /api/research/state`
-
-Returns the complete current state for an agent: graph, timeline, questions, and compass context.
-
-```bash
-curl http://localhost:3001/api/research/state
-```
-
-## Research Actions
-
-All request bodies are JSON.
-
-### `POST /api/research/nodes`
-
-Creates a node and its Markdown file. Omit `parentId` to create a floating node. Include `parentId` to create the node and a `step` link together.
-
-```json
-{
-  "title": "Test detector vocabulary",
-  "role": "experiment",
-  "tags": ["agent-demo", "detector"],
-  "parentId": "n_o1",
-  "content": "# Test detector vocabulary\n\n- [ ] Run the test\n"
-}
-```
-
-Useful fields: `title`, `role`, `kind`, `status`, `outcome`, `tags`, `position`, `parentId`, `link`, and `content`.
-
-Response:
-
-```json
-{ "node": { "id": "n_..." }, "edge": { "id": "e_..." }, "floating": false }
-```
-
-### `POST /api/research/links`
-
-Creates a link between existing nodes. `kind` can be `step` or `merge`.
-
-```json
-{
-  "source": "n_exp_1",
-  "target": "n_syn_1",
-  "kind": "merge",
-  "note": "This experiment contributes evidence to the synthesis."
-}
-```
-
-### `POST /api/research/log`
-
-Appends a dated Markdown note to a node.
-
-```json
-{
-  "nodeId": "n_exp_1",
-  "note": "The baseline was reproduced on the fixed sample."
-}
-```
-
-Optional `date` overrides the automatic local log date.
-
-### `POST /api/research/dead-end`
-
-Marks a node as `dead` and stores the reason in its outcome.
-
-```json
-{
-  "nodeId": "n_exp_1",
-  "reason": "The preprocessing changed two variables at once."
-}
-```
-
-### `POST /api/research/merge`
-
-Marks a node as `merged`, changes its outgoing edges to `merge`, and optionally records its relationship to an RQ.
-
-```json
-{
-  "nodeId": "n_exp_1",
-  "title": "Crop-aware mapping validated",
-  "outcome": "Boxes align with the intended ViT patches.",
-  "rq": "RQ1",
-  "finding": "positive",
-  "contribution": "Supports the mapping part of RQ1."
-}
-```
-
-`finding` must be `positive`, `negative`, or `neutral`.
-
-### `POST /api/change-reports`
-
-Writes a Markdown audit trail for an approved topic, objective, or research-question change.
-
-## Existing File Endpoints
-
-These lower-level endpoints are still available for UI and tooling:
+## Initialization and orientation
 
 ```text
-GET    /api/graph
-PUT    /api/graph
-GET    /api/context
-PUT    /api/context/:layer
-GET    /api/questions
-PUT    /api/questions
-GET    /api/timeline
-PUT    /api/timeline
-GET    /api/node/:id
-PUT    /api/node/:id
-DELETE /api/node/:id
-POST   /api/summarize
-POST   /api/change-reports
+POST /api/research/init/preview   preview only
+POST /api/research/init           create a new project; never overwrites
+GET  /api/research/state          full state + STATE.md stale fingerprint
+GET  /api/graph
+GET  /api/context
+GET  /api/questions
+GET  /api/timeline
+GET  /api/team
 ```
 
-For agent workflows, prefer the semantic `/api/research/*` actions. They preserve the graph-plus-Markdown convention and make the agent's intent visible in the request sequence.
-
-## Agent Demo
-
-The repository includes a script that exercises the complete loop without editing JSON manually:
+CLI equivalents:
 
 ```bash
-node scripts/research-api-demo.mjs
+node scripts/research-cli.mjs preview --input project.json
+node scripts/research-cli.mjs init --input project.json
+node scripts/research-cli.mjs state
+node scripts/research-cli.mjs refresh-state
+node scripts/research-cli.mjs apply --input operation.json
 ```
 
-It creates a floating hypothesis, a linked branch, a lab note, a dead end, a synthesis node, evidence links, and a merged synthesis. The demo intentionally changes local `research_data/`; use it on demo data or reset the roadmap afterward.
+Set `RESEARCH_DATA_DIR` when launching `npm run research:mcp` to target a
+non-default project folder.
+
+## Writes
+
+```text
+PUT  /api/graph                  nodes, edges, expectedRevision
+PUT  /api/questions              { questions }
+PUT  /api/timeline               { months }
+PUT  /api/team                   { members }
+GET/PUT /api/node/:id            Markdown body only
+POST /api/research/nodes         semantic node creation
+POST /api/research/links         typed relationship creation
+POST /api/research/log           append dated note
+POST /api/research/dead-end       preserve failed route
+POST /api/research/merge          merge result/synthesis and optional RQ evidence
+POST /api/research/apply          shared create/patch/connect/transition/objective operation
+```
+
+Every structural write is validated. Agent workflows must inspect first,
+announce exact intended edits, and write only after an explicit user request.
+RQ answers, aspect retirement, and objective completion require human approval.
+
+## Read-only Git
+
+```text
+GET /api/git/activity            research changes, commits, checkpoints
+GET /api/git/snapshot/:ref       historical graph reconstructed in memory
+```
+
+Accepted refs are commit hashes or `research/checkpoint/*` tags. These endpoints
+never check out, commit, branch, tag, pull, push, merge, or revert.
+
+Swagger remains available at `http://localhost:3001/api-docs`; update
+`openapi.js` when adding a public HTTP operation.

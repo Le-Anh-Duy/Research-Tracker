@@ -5,7 +5,7 @@ const node = (id, role, extra = {}) => ({ id, position: { x: 0, y: 0 }, data: { 
 const edge = (source, target) => ({ id: `${source}_${target}`, source, target, data: { kind: 'step' } });
 const graph = {
   nodes: [node('o', 'objective', { anchor: true }), node('a', 'experiment'), node('b', 'experiment', { status: 'merged', rq: 'RQ1' }), node('x', 'work'), node('s', 'synthesis'), node('rq', 'research-question', { anchor: true, questionId: 'RQ1' })],
-  edges: [edge('o', 's'), edge('o', 'a'), edge('s', 'a'), edge('s', 'b'), edge('a', 'x'), edge('x', 'a'), edge('b', 's'), edge('b', 'rq')],
+  edges: [edge('o', 's'), edge('o', 'a'), edge('s', 'a'), edge('s', 'b'), edge('a', 'x'), edge('x', 'a'), edge('b', 's'), { ...edge('b', 'rq'), data: { kind: 'evidence' } }],
 };
 
 assert.equal(detailLevelForZoom(0.4), 'overview');

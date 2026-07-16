@@ -29,39 +29,19 @@ export function linkedId(value, folder) {
   return match ? match[1] : '';
 }
 
-export function nodeMetadata(node, edges) {
-  return {
-    id: node.id,
-    ...node.data,
-    from: edges.filter((edge) => edge.target === node.id).map((edge) => wikiLink('edges', edge.id)),
-    to: edges.filter((edge) => edge.source === node.id).map((edge) => wikiLink('edges', edge.id)),
-  };
-}
+export const nodeMetadata = (node) => ({ id: node.id, ...node.data });
 
 export function edgeMetadata(edge) {
   const { note, ...data } = edge.data || {};
   return { id: edge.id, ...data, from: wikiLink('nodes', edge.source), to: wikiLink('nodes', edge.target) };
 }
 
-export function reciprocalError(nodes, edges) {
-  const nodeById = new Map(nodes.map((node) => [node.id, node]));
-  const edgeById = new Map(edges.map((edge) => [edge.id, edge]));
+export function relationshipError(nodes, edges) {
+  const nodeIds = new Set(nodes.map((node) => node.id));
   for (const edge of edges) {
-    const source = nodeById.get(edge.source);
-    const target = nodeById.get(edge.target);
-    if (!source || !target) return `missing endpoint for ${edge.id}`;
-    if (!source.metadata.to?.includes(wikiLink('edges', edge.id))) return `${source.id} does not point to ${edge.id}`;
-    if (!target.metadata.from?.includes(wikiLink('edges', edge.id))) return `${target.id} does not point back to ${edge.id}`;
-  }
-  for (const node of nodes) {
-    for (const ref of node.metadata.from || []) {
-      const edge = edgeById.get(linkedId(ref, 'edges'));
-      if (!edge || edge.target !== node.id) return `${node.id} has invalid incoming link ${ref}`;
-    }
-    for (const ref of node.metadata.to || []) {
-      const edge = edgeById.get(linkedId(ref, 'edges'));
-      if (!edge || edge.source !== node.id) return `${node.id} has invalid outgoing link ${ref}`;
-    }
+    if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) return `missing endpoint for ${edge.id}`;
   }
   return '';
 }
+
+export const reciprocalError = relationshipError;

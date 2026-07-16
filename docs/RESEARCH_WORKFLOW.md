@@ -1,39 +1,44 @@
 # Research workflow
 
-The app preserves a flexible evidence chain without prescribing a scientific method:
+The workspace follows familiar iterative empirical research without forcing a
+single methodology: question formulation, decomposition, planned investigation,
+observation, interpretation, synthesis, and human review. It supports exploratory
+branches and negative results while keeping claims traceable.
 
 ```text
-Research question -> idea or hypothesis -> work/experiment -> finding -> synthesis -> RQ answer
+Project
+  -> research or enabling objective
+     -> aspects to resolve
+        -> idea/task/experiment/decision DAG
+           -> closing synthesis --resolves--> aspect
+              --evidence--> one or more research questions
 ```
 
-Objectives and research questions are long-lived. Monthly milestones are tactical "fog of war": define the current month in detail and keep later months broad. Every month should include a small review of all objectives and RQs.
+An objective may end through several independent aspects; there is no required
+single sink for its whole subgraph. Progress is an unweighted count such as
+`3 of 5 aspects synthesized`. Cross-links between routes are normal. Retired
+aspects remain visible but leave the denominator. Only a researcher marks the
+objective met after reviewing the synthesized aspects.
 
-## Node meanings
+Research Objectives and Research Questions are UI group labels, not separator
+nodes. An enabling objective may support other objectives without answering an
+RQ. Objective/RQ relationships are many-to-many, while scientific contribution
+comes only from explicit evidence links.
 
-| Type | Use it for | Expected result |
-| --- | --- | --- |
-| Work | Implementation, dataset preparation, reading, or preliminary analysis | A concrete deliverable or next decision |
-| Experiment | Testing a hypothesis with a reproducible setup and metric | A positive, negative, or neutral finding |
-| Decision | Recording a selected direction and rejected alternatives | A rationale that later work can trace |
-| Synthesis | Combining several findings toward an RQ | A bounded claim with caveats and gaps |
-| Note / dump | Unstructured capture that does not yet fit the workflow | Anything; no lifecycle expectation |
+## Practical meanings
 
-Project, objective, and research-question nodes are separate structural anchors. Objectives and questions are managed in Compass; their nodes make both concepts independently linkable on the Map. Milestones belong to the timeline and are not manual node types. Use tags to qualify a Work node (`literature`, `module`, `dataset`, `analysis`) instead of multiplying node types.
+- **Idea**: promising thought not yet placed in a route.
+- **Task**: reading, dataset preparation, implementation, or analysis action.
+- **Experiment**: one experimental question; raw runs remain external.
+- **Decision**: choice, rejected alternatives, and rationale.
+- **Synthesis**: bounded integration of evidence, caveats, and gaps.
+- **Note**: capture that does not affect progress.
 
-A node becomes evidence only when it is merged and linked to an RQ. `dead` means a real attempted direction that should remain visible; delete only mistakes or test clutter.
+Use `dead` for a real failed route, `retired` for removed scope, and
+`superseded` when later-milestone work replaces an unfinished task. Keep all of
+them visible. Use `depends-on` only for blockers; use `informs` for non-blocking
+knowledge. A new task should reference superseded work when useful.
 
-## Links
-
-Nodes and edges are peer Markdown documents with different meanings:
-
-- `nodes/<id>.md` owns the node's research metadata and notes.
-- `edges/<id>.md` owns the relation type, endpoints, and explanation.
-- A node's `from`/`to` lists incoming/outgoing edge documents.
-- An edge's `from`/`to` names its source/target node documents.
-- `graph.json` owns UI layout and revision only.
-
-The web editor hides frontmatter. Wikilinks make the folder readable in Obsidian, but Obsidian editing and reverse synchronization are not product requirements.
-
-## Keeping the map readable
-
-Use milestone focus for current work and status filters for active, parked, or resolved work. Compacting one node is safe because it changes only presentation. Folding a whole path should be added only after the app can identify a resolved branch without hiding unresolved work; folded state must remain a UI projection, never rewrite research content.
+External experiment references record portable repository URL, commit, run ID,
+and artifact-relative path. Never commit absolute machine paths, raw logs,
+datasets, or checkpoints into this coordination repository.

@@ -8,6 +8,7 @@ export default function CompassView({
   objectiveNodes,
   questions,
   nodes,
+  edges,
   onSaveTopic,
   onSaveObjective,
   onAddObjective,
@@ -89,7 +90,8 @@ export default function CompassView({
           <QuestionsView
             questions={questions}
             nodes={nodes}
-            objectives={context.layer2}
+            edges={edges}
+            objectives={objectiveNodes}
             onRequestQuestionChange={onRequestQuestionChange}
             onRequestQuestionObjectiveChange={onRequestQuestionObjectiveChange}
             onRequestQuestionAdd={onRequestQuestionAdd}

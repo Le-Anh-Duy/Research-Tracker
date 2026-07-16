@@ -76,7 +76,7 @@ export function buildInitialRoadmap({ topic, objectives, questions, firstTasks, 
   };
 }
 
-export const questionNodeId = (questionId) => `n_${questionId.toLowerCase()}`;
+export const questionNodeId = (questionId) => `rq_${questionId.toLowerCase()}`;
 
 export function reconcileQuestionNodes(graph, questions) {
   const wanted = new Map(questions.map((question) => [questionNodeId(question.id), question]));

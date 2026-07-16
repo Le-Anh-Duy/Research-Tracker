@@ -8,6 +8,8 @@ const json = async (r) => {
 };
 const put = (url, body) =>
   fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(json);
+const post = (url, body) =>
+  fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(json);
 
 export const getGraph = () => fetch('/api/graph').then(json);
 export const putGraph = (graph, expectedRevision) => put('/api/graph', { nodes: graph.nodes, edges: graph.edges, expectedRevision });
@@ -15,6 +17,8 @@ export const getTimeline = () => fetch('/api/timeline').then(json);
 export const putTimeline = (timeline) => put('/api/timeline', timeline);
 export const getQuestions = () => fetch('/api/questions').then(json);
 export const putQuestions = (questions) => put('/api/questions', questions);
+export const getTeam = () => fetch('/api/team').then(json);
+export const putTeam = (team) => put('/api/team', team);
 export const getNode = (id) => fetch(`/api/node/${id}`).then(json);
 export const putNode = (id, content) => put(`/api/node/${id}`, { content });
 export const deleteNode = (id) => fetch(`/api/node/${id}`, { method: 'DELETE' }).then(json);
@@ -30,3 +34,8 @@ export const summarize = (nodeId) =>
     body: JSON.stringify({ nodeId }),
   }).then(json);
 export const researchState = () => fetch('/api/research/state').then(json);
+export const previewProject = (input) => post('/api/research/init/preview', input);
+export const initializeProject = (input) => post('/api/research/init', input);
+export const applyResearchOperation = (operation) => post('/api/research/apply', operation);
+export const gitActivity = () => fetch('/api/git/activity').then(json);
+export const gitSnapshot = (ref) => fetch(`/api/git/snapshot/${encodeURIComponent(ref)}`).then(json);

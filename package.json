@@ -5,10 +5,13 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k \"node server.js\" \"vite\"",
+    "dev": "concurrently -k \"node --env-file-if-exists=.env.local --watch server.js\" \"vite\"",
     "build": "vite build",
-    "test": "node scripts/contracts.test.mjs && node scripts/research-doc.test.mjs && node scripts/roadmap.test.mjs && node scripts/timelineStatus.test.mjs && node scripts/preferences.test.mjs && node scripts/selection.test.mjs && node scripts/graphView.test.mjs",
-    "start": "node server.js"
+    "check": "npm test && npm run build",
+    "test": "node scripts/contracts.test.mjs && node scripts/research-doc.test.mjs && node scripts/research-domain.test.mjs && node scripts/research-actions.test.mjs && node scripts/research-project.test.mjs && node scripts/server-smoke.test.mjs && node scripts/roadmap.test.mjs && node scripts/timelineStatus.test.mjs && node scripts/preferences.test.mjs && node scripts/selection.test.mjs && node scripts/graphView.test.mjs",
+    "start": "node server.js",
+    "research": "node scripts/research-cli.mjs",
+    "research:mcp": "node scripts/research-mcp.mjs"
   },
   "dependencies": {
     "@xyflow/react": "^12.3.0",

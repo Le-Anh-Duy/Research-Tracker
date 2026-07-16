@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { isEvidenceFor } from '../roadmap';
+import { evidenceForQuestion } from '../../research-domain.js';
 
 // The destination board. Experiments live on the Map; this is where their
 // evidence adds up into an answer. Evidence per RQ is DERIVED from nodes
@@ -8,8 +8,7 @@ import { isEvidenceFor } from '../roadmap';
 const STATUSES = ['open', 'partial', 'answered'];
 const FINDING_LABEL = { positive: '+ supports', negative: '− against', neutral: '~ mixed' };
 
-export default function QuestionsView({ questions, nodes, objectives, onUpdate, onRequestQuestionChange, onRequestQuestionObjectiveChange, onRequestQuestionAdd, onRequestQuestionDelete, onJumpToNode }) {
-  const objLines = (objectives || '').split('\n').filter(Boolean);
+export default function QuestionsView({ questions, nodes, edges, objectives, onUpdate, onRequestQuestionChange, onRequestQuestionObjectiveChange, onRequestQuestionAdd, onRequestQuestionDelete, onJumpToNode }) {
   const [drafts, setDrafts] = useState({});
   const [newText, setNewText] = useState('');
   const [newObj, setNewObj] = useState(-1);
@@ -26,14 +25,13 @@ export default function QuestionsView({ questions, nodes, objectives, onUpdate, 
           this is where you write, in your own words, what that evidence adds up to.
         </p>
         {questions.map((q) => {
-          const evidence = nodes.filter((node) => isEvidenceFor(node, q.id));
+          const evidence = evidenceForQuestion(q.id, nodes, edges);
           return (
             <div key={q.id} className={'q-card s-' + q.status}>
               <div className="q-head">
                 <span className="q-id">{q.id}</span>
-                <select className="q-objective" value={q.obj} onChange={(e) => onRequestQuestionObjectiveChange(q, Number(e.target.value))} title="Objective this question serves">
-                  <option value={-1}>general</option>
-                  {objLines.map((_, index) => <option key={index} value={index}>O{index + 1}</option>)}
+                <select multiple className="q-objective" value={q.objectiveIds || []} onChange={(e) => onRequestQuestionObjectiveChange(q, [...e.target.selectedOptions].map((option) => option.value))} title="Objectives this question serves">
+                  {objectives.map((objective) => <option key={objective.id} value={objective.id}>{objective.data.title.split(':')[0]}</option>)}
                 </select>
                 <select
                   className="q-status"
@@ -96,7 +94,7 @@ export default function QuestionsView({ questions, nodes, objectives, onUpdate, 
           <input value={newText} onChange={(e) => setNewText(e.target.value)} placeholder="New research question..." />
           <select value={newObj} onChange={(e) => setNewObj(Number(e.target.value))}>
             <option value={-1}>general</option>
-            {objLines.map((_, index) => <option key={index} value={index}>O{index + 1}</option>)}
+            {objectives.map((objective, index) => <option key={objective.id} value={index}>{objective.data.title.split(':')[0]}</option>)}
           </select>
           <button className="btn ghost" disabled={!newText.trim()} onClick={() => onRequestQuestionAdd(newText.trim(), newObj, () => setNewText(''))}>Add question</button>
         </div>
