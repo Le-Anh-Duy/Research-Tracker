@@ -9,7 +9,7 @@ export default function TimelineBar({ months, nodesById, activeMilestoneId, onFo
   const [collapsed, setCollapsed] = useState(false);
   const [monthDraft, setMonthDraft] = useState(null);
   const [milestoneDraft, setMilestoneDraft] = useState(null);
-  const nodes = Object.values(nodesById).filter((node) => node.id !== 'n_start');
+  const nodes = Object.values(nodesById).filter((node) => node.id !== 'project');
   const objectives = nodes.filter((node) => node.data.role === 'objective').sort((a, b) => a.position.x - b.position.x);
   let firstUnfinishedSeen = false;
 
@@ -26,7 +26,8 @@ export default function TimelineBar({ months, nodesById, activeMilestoneId, onFo
     const next = [...months, {
       id: monthId,
       title,
-      milestones: [{ id: progressId, title: 'Review O1–O3 and RQ1–RQ3 progress', obj: -1, nodeIds: [] }],
+      current: !months.some((month) => month.current),
+      milestones: [{ id: progressId, title: 'Review objective and RQ progress', nodeIds: [] }],
     }];
     if (await onChange(next)) {
       setMonthDraft(null);
@@ -50,7 +51,8 @@ export default function TimelineBar({ months, nodesById, activeMilestoneId, onFo
     const milestone = {
       id: milestoneDraft.id || id('ms'),
       title,
-      obj: Number(milestoneDraft.obj),
+      ...(milestoneDraft.objectiveId ? { objectiveId: milestoneDraft.objectiveId } : {}),
+      ...(milestoneDraft.deadline ? { deadline: milestoneDraft.deadline } : {}),
       nodeIds: milestoneDraft.nodeIds,
     };
     const next = months.map((month) => month.id !== milestoneDraft.monthId ? month : {
@@ -74,7 +76,8 @@ export default function TimelineBar({ months, nodesById, activeMilestoneId, onFo
     monthId,
     id: milestone?.id || null,
     title: milestone?.title || '',
-    obj: milestone?.obj ?? -1,
+    objectiveId: milestone?.objectiveId || '',
+    deadline: milestone?.deadline || '',
     nodeIds: [...(milestone?.nodeIds || [])],
   });
 
@@ -201,10 +204,12 @@ function MilestoneForm({ draft, setDraft, objectives, nodes, onSubmit, onCancel,
       <label>Milestone</label>
       <input autoFocus type="text" value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} placeholder="Concrete result for this period" />
       <label>Objective</label>
-      <select value={draft.obj} onChange={(event) => setDraft({ ...draft, obj: Number(event.target.value) })}>
-        <option value={-1}>General</option>
-        {objectives.map((objective, index) => <option key={objective.id} value={index}>O{index + 1}: {objective.data.title.replace(/^O\d+:\s*/, '')}</option>)}
+      <select value={draft.objectiveId} onChange={(event) => setDraft({ ...draft, objectiveId: event.target.value })}>
+        <option value="">General</option>
+        {objectives.map((objective) => <option key={objective.id} value={objective.id}>{objective.data.title}</option>)}
       </select>
+      <label>Deadline (optional)</label>
+      <input type="date" value={draft.deadline} onChange={(event) => setDraft({ ...draft, deadline: event.target.value })} />
       <label>Linked work</label>
       <select value="" onChange={(event) => addNode(event.target.value)}>
         <option value="">Link a node…</option>

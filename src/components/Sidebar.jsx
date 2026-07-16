@@ -3,10 +3,11 @@ import * as api from '../api';
 
 const NODE_COLORS = ['#d97757', '#176b78', '#4f7a4d', '#9a7d3e', '#8b5e83', '#6f6a60'];
 const ROLES = [
-  ['work', 'Work'],
+  ['aspect', 'Aspect'],
+  ['idea', 'Idea'],
+  ['task', 'Task'],
   ['experiment', 'Experiment'],
   ['decision', 'Decision'],
-  ['module', 'Module / branch'],
   ['synthesis', 'Synthesis'],
   ['note', 'Note / dump'],
 ];
@@ -16,6 +17,7 @@ export default function Sidebar({
   edge,
   nodesById = {},
   questions = [],
+  team = { members: [] },
   onPatch,
   onPatchEdge,
   onMerge,
@@ -97,9 +99,15 @@ export default function Sidebar({
           <input type="text" readOnly value={`${nodesById[edge.source]?.data?.title || edge.source} → ${nodesById[edge.target]?.data?.title || edge.target}`} />
         </div>
         <div className="field">
-          <label>Graph behavior</label>
-          <input type="text" readOnly value={edge.data?.flowKind === 'reference' ? `Reference${edge.data.flowReason ? ` — ${edge.data.flowReason}` : ''}` : 'Dependency'} />
-          <small className="field-help">Only dependency edges are followed by Focus and Fold.</small>
+          <label>Relationship type</label>
+          <select value={edge.data?.kind || 'step'} onChange={(event) => onPatchEdge({ kind: event.target.value })}>
+            <option value="step">Step in a route</option>
+            <option value="depends-on">Blocking prerequisite</option>
+            <option value="informs">Non-blocking knowledge</option>
+            <option value="evidence">Evidence for a question</option>
+            <option value="resolves">Closing synthesis resolves aspect</option>
+          </select>
+          <small className="field-help">The edge Markdown file owns this meaning and its rationale.</small>
         </div>
         <div className="field log-wrap">
           <label>Why this connection exists</label>
@@ -203,6 +211,18 @@ export default function Sidebar({
           </div>
 
           {!isAnchor && (
+            <>
+            <div className="field">
+              <label>Assigned to</label>
+              <select multiple value={node.data.assignees || []} onChange={(event) => onPatch({ assignees: [...event.target.selectedOptions].map((option) => option.value) })}>
+                {team.members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}
+              </select>
+            </div>
+            <div className="field">
+              <label>Planning</label>
+              <input type="date" value={node.data.due || ''} onChange={(event) => onPatch({ due: event.target.value || undefined })} />
+              <label className="pin-toggle"><input type="checkbox" checked={Boolean(node.data.pinned)} onChange={(event) => onPatch({ pinned: event.target.checked || undefined })} /> Pin on Home</label>
+            </div>
             <div className="field evidence-field">
               <label>Research question</label>
               <select value={node.data.rq || ''} onChange={(event) => onPatch({ rq: event.target.value || undefined })}>
@@ -220,12 +240,23 @@ export default function Sidebar({
                 </>
               )}
             </div>
+            </>
           )}
 
           {node.data.outcome && (
             <div className="field">
               <label>Outcome</label>
               <input type="text" value={node.data.outcome} onChange={(event) => onPatch({ outcome: event.target.value })} />
+            </div>
+          )}
+
+          {!isAnchor && (
+            <div className="field">
+              <label>External experiment reference</label>
+              <input type="text" value={node.data.external?.repoUrl || ''} onChange={(event) => onPatch({ external: { ...(node.data.external || {}), repoUrl: event.target.value } })} placeholder="Portable repository URL" />
+              <input className="mt-6" type="text" value={node.data.external?.commit || ''} onChange={(event) => onPatch({ external: { ...(node.data.external || {}), commit: event.target.value } })} placeholder="Commit SHA" />
+              <input className="mt-6" type="text" value={node.data.external?.runId || ''} onChange={(event) => onPatch({ external: { ...(node.data.external || {}), runId: event.target.value } })} placeholder="Run ID" />
+              <input className="mt-6" type="text" value={node.data.external?.artifact || ''} onChange={(event) => onPatch({ external: { ...(node.data.external || {}), artifact: event.target.value } })} placeholder="Artifact-relative path (never an absolute local path)" />
             </div>
           )}
 

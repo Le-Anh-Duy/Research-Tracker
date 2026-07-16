@@ -1,14 +1,15 @@
 import { useState } from 'react';
 
 // The wizard asks; the researcher thinks. No AI here by design.
-const STEPS = ['Topic', 'Objectives', 'Questions', 'First tasks', 'Timeline', 'Review'];
+const STEPS = ['Topic', 'Objectives', 'Questions', 'First aspects', 'Timeline', 'Review'];
 
 export default function InitWizard({ onDone }) {
   const [step, setStep] = useState(0);
   const [topic, setTopic] = useState('');
   const [objectives, setObjectives] = useState(['']);
+  const [objectiveKinds, setObjectiveKinds] = useState({});
   const [questions, setQuestions] = useState([{ text: '', obj: -1 }]);
-  const [firstTasks, setFirstTasks] = useState({});
+  const [firstAspects, setFirstAspects] = useState({});
   const [exitCriteria, setExitCriteria] = useState({});
   const [months, setMonths] = useState([]);
   const [connectInitialNodes, setConnectInitialNodes] = useState(true);
@@ -39,8 +40,9 @@ export default function InitWizard({ onDone }) {
       await onDone({
         topic: topic.trim(),
         objectives: cleanObjectives,
+        objectiveKinds: cleanObjectives.map((_, i) => objectiveKinds[i] || 'research'),
         questions: cleanQuestions.map((q) => ({ text: q.text.trim(), obj: q.obj })),
-        firstTasks: cleanObjectives.map((_, i) => firstTasks[i] || ''),
+        firstAspects: cleanObjectives.map((_, i) => firstAspects[i] || ''),
         exitCriteria: cleanObjectives.map((_, i) => exitCriteria[i] || ''),
         months: cleanMonths.map((m) => ({
           title: m.title,
@@ -122,6 +124,10 @@ export default function InitWizard({ onDone }) {
                     onChange={(e) => setObjective(i, e.target.value)}
                     placeholder="e.g. Build the attention-injection framework on a frozen backbone"
                   />
+                  <select value={objectiveKinds[i] || 'research'} onChange={(event) => setObjectiveKinds((current) => ({ ...current, [i]: event.target.value }))}>
+                    <option value="research">research</option>
+                    <option value="enabling">enabling</option>
+                  </select>
                   {objectives.length > 1 && (
                     <button
                       className="remove"
@@ -203,9 +209,9 @@ export default function InitWizard({ onDone }) {
                   </p>
                   <input
                     type="text"
-                    value={firstTasks[i] || ''}
-                    onChange={(e) => setFirstTasks((t) => ({ ...t, [i]: e.target.value }))}
-                    placeholder="First concrete task…"
+                    value={firstAspects[i] || ''}
+                    onChange={(e) => setFirstAspects((t) => ({ ...t, [i]: e.target.value }))}
+                    placeholder="First research aspect…"
                   />
                   <input
                     type="text"
@@ -288,8 +294,8 @@ export default function InitWizard({ onDone }) {
                 {cleanObjectives.map((o, i) => (
                   <li key={i}>
                     O{i + 1}: {o}
-                    {firstTasks[i]?.trim() && (
-                      <span style={{ color: 'var(--ink-soft)' }}> → first: {firstTasks[i]}</span>
+                    {firstAspects[i]?.trim() && (
+                      <span style={{ color: 'var(--ink-soft)' }}> → first aspect: {firstAspects[i]}</span>
                     )}
                     {exitCriteria[i]?.trim() && (
                       <span style={{ color: 'var(--ink-soft)' }}> · done when: {exitCriteria[i]}</span>

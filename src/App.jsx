@@ -12,7 +12,11 @@ import CompassView from './components/CompassView';
 import ReviewView from './components/ReviewView';
 import SettingsView from './components/SettingsView';
 import ChangeReviewModal from './components/ChangeReviewModal';
-import { buildInitialRoadmap, questionNodeId, reconcileQuestionNodes } from './roadmap';
+import HomeView from './components/HomeView';
+import JourneyView from './components/JourneyView';
+import EvidenceView from './components/EvidenceView';
+import ObjectivesView from './components/ObjectivesView';
+import { questionNodeId, reconcileQuestionNodes } from './roadmap';
 import { loadPreferences } from './preferences';
 import { classifyGraphEdges, relatedNodeIds } from './graphView';
 
@@ -23,8 +27,9 @@ export default function App() {
   const [context, setContext] = useState({ layer1: '', layer2: '', layer3: '' });
   const [timeline, setTimeline] = useState({ months: [] });
   const [questions, setQuestions] = useState([]);
+  const [team, setTeam] = useState({ members: [] });
   const [preferences, setPreferences] = useState(() => loadPreferences(localStorage));
-  const [view, setView] = useState('map'); // map | compass | review | settings | help
+  const [view, setView] = useState('home'); // home | map | compass | review | settings | help
   const [selectedId, setSelectedId] = useState(null);
   const [nodeFocus, setNodeFocus] = useState(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
@@ -34,6 +39,7 @@ export default function App() {
   const qTimer = useRef(null);
   const graphRef = useRef(null); // latest graph, for history snapshots
   const serverRevision = useRef(0);
+  const sourceFingerprint = useRef('');
   const graphSaveChain = useRef(Promise.resolve());
   const graphSaveEpoch = useRef(0);
   const graphWriteCount = useRef(0);
@@ -51,11 +57,12 @@ export default function App() {
   }, [preferences]);
 
   useEffect(() => {
-    Promise.all([api.getGraph(), api.getContext(), api.getTimeline(), api.getQuestions()])
-      .then(async ([g, c, t, q]) => {
+    Promise.all([api.getGraph(), api.getContext(), api.getTimeline(), api.getQuestions(), api.getTeam()])
+      .then(async ([g, c, t, q, people]) => {
         setContext(c);
         setTimeline(t);
         setQuestions(q.questions || []);
+        setTeam(people);
         if (g.initialized === false) {
           setInitialized(false);
         } else {
@@ -121,6 +128,7 @@ export default function App() {
   // noise, not worth an undo step). Push the PREVIOUS state, so undo restores it.
   const updateGraph = useCallback((updater, { immediate = false, checkpoint = true } = {}) => {
     setGraph((g) => {
+      if (g.historical) return g;
       const next = typeof updater === 'function' ? updater(g) : updater;
       if (checkpoint) {
         const now = Date.now();
@@ -147,10 +155,6 @@ export default function App() {
     const snapshot = from.pop();
     to.push(current);
     const currentIds = new Set(current.nodes.map((n) => n.id));
-    const nextIds = new Set(snapshot.nodes.map((n) => n.id));
-    current.nodes.forEach((n) => {
-      if (!nextIds.has(n.id)) api.deleteNode(n.id);
-    });
     snapshot.nodes.forEach((n) => {
       if (!currentIds.has(n.id)) api.putNode(n.id, deletedFiles.current[n.id] || '');
     });
@@ -218,7 +222,6 @@ export default function App() {
         }),
         { immediate: true }
       );
-      api.deleteNode(id);
       setNodeFocus((focus) => {
         if (!focus?.ids.includes(id)) return focus;
         const ids = focus.ids.filter((nodeId) => nodeId !== id);
@@ -243,10 +246,10 @@ export default function App() {
               : n
           ),
           edges: (() => {
-            const changed = g.edges.map((e) => (e.source === id ? { ...e, data: { ...e.data, kind: 'merge' } } : e));
+            const changed = g.edges;
             const questionNode = g.nodes.find((node) => node.data.questionId === rq);
             if (!questionNode || changed.some((edge) => edge.source === id && edge.target === questionNode.id)) return changed;
-            return [...changed, { id: `e_${id}_${questionNode.id}`, source: id, target: questionNode.id, data: { kind: 'merge' } }];
+            return [...changed, { id: `e_${id}_${questionNode.id}`, source: id, target: questionNode.id, data: { kind: 'evidence', note: contribution || `Evidence for ${rq}` } }];
           })(),
         }),
         { immediate: true }
@@ -260,7 +263,7 @@ export default function App() {
     const questionNode = graph.nodes.find((node) => node.data.questionId === key);
     const linked = new Set(questionNode ? graph.edges.flatMap((edge) => edge.source === questionNode.id ? [edge.target] : edge.target === questionNode.id ? [edge.source] : []) : []);
     return graph.nodes
-      .filter((node) => node.id !== 'n_start' && (
+      .filter((node) => node.id !== 'project' && (
         type === 'topic'
         || (type === 'objective' && node.data.role === 'objective')
         || (type === 'question' && node.data.role !== 'research-question' && (node.data.rq === key || linked.has(node.id)))
@@ -288,11 +291,11 @@ export default function App() {
       : '';
     setPendingChange({ type, title: `Update ${type}`, before: context['layer' + layerNum], after: value, affected: affectedFor(type), blocked, cancel: onCancel, apply: async () => {
       if (type === 'topic') {
-        const start = graph.nodes.find((node) => node.id === 'n_start');
+        const start = graph.nodes.find((node) => node.id === 'project');
         if (start) {
-          updateGraph((g) => ({ ...g, nodes: g.nodes.map((node) => node.id === 'n_start' ? { ...node, data: { ...node.data, title: value.slice(0, 90) } } : node) }), { immediate: true });
-          const note = await api.getNode('n_start');
-          await api.putNode('n_start', replaceHeading(note.content, value));
+          updateGraph((g) => ({ ...g, nodes: g.nodes.map((node) => node.id === 'project' ? { ...node, data: { ...node.data, title: value.slice(0, 90) } } : node) }), { immediate: true });
+          const note = await api.getNode('project');
+          await api.putNode('project', replaceHeading(note.content, value));
         }
       } else {
         updateGraph((g) => ({ ...g, nodes: g.nodes.map((node) => {
@@ -316,7 +319,7 @@ export default function App() {
     ));
     updateGraph((current) => reconcileQuestionNodes(current, next), { immediate: true });
     updateQuestions(next, true);
-    setContext((c) => ({ ...c, layer3: next.map((q, i) => `RQ${i + 1}${q.obj >= 0 ? ` (O${q.obj + 1})` : ''}: ${q.text}`).join('\n') }));
+    setContext((c) => ({ ...c, layer3: next.map((q) => `${q.id}${q.objectiveIds?.length ? ` (${q.objectiveIds.join(', ')})` : ''}: ${q.text}`).join('\n') }));
   }, [updateGraph, updateQuestions]);
 
   const requestQuestionChange = useCallback((question, value, onCancel) => {
@@ -326,14 +329,15 @@ export default function App() {
     }});
   }, [affectedFor, questions, saveQuestions]);
 
-  const requestQuestionObjectiveChange = useCallback((question, obj) => {
-    if (obj === question.obj) return;
-    setPendingChange({ type: 'question mapping', title: `Map ${question.id} to ${obj < 0 ? 'general' : `O${obj + 1}`}`, before: question.obj < 0 ? 'general' : `O${question.obj + 1}`, after: obj < 0 ? 'general' : `O${obj + 1}`, affected: affectedFor('question', question.id), apply: () => saveQuestions(questions.map((q) => q.id === question.id ? { ...q, obj } : q)) });
+  const requestQuestionObjectiveChange = useCallback((question, objectiveIds) => {
+    const before = question.objectiveIds || [];
+    if (before.join(',') === objectiveIds.join(',')) return;
+    setPendingChange({ type: 'question mapping', title: `Update objective links for ${question.id}`, before: before.join(', ') || 'general', after: objectiveIds.join(', ') || 'general', affected: affectedFor('question', question.id), apply: () => saveQuestions(questions.map((q) => q.id === question.id ? { ...q, objectiveIds } : q)) });
   }, [affectedFor, questions, saveQuestions]);
 
   const requestQuestionAdd = useCallback((text, obj, onCancel) => {
     const maxId = questions.reduce((max, question) => Math.max(max, Number(question.id.replace(/^RQ/, '')) || 0), 0);
-    const nextQuestion = { id: `RQ${maxId + 1}`, text, obj, status: 'open', answer: '' };
+    const nextQuestion = { id: `RQ${maxId + 1}`, text, objectiveIds: obj >= 0 ? [`o${obj + 1}`] : [], status: 'open', answer: '' };
     setPendingChange({ type: 'question', title: `Add ${nextQuestion.id}`, before: '', after: text, affected: [], cancel: onCancel, apply: async () => { await saveQuestions([...questions, nextQuestion]); onCancel?.(); } });
   }, [questions, saveQuestions]);
 
@@ -362,8 +366,8 @@ export default function App() {
 
   const addObjective = useCallback(async ({ title, exitCriteria }) => {
     const objectives = graphRef.current.nodes.filter((node) => node.data.role === 'objective').sort((a, b) => a.position.x - b.position.x);
-    const number = objectives.reduce((max, node) => Math.max(max, Number(node.id.match(/^n_o(\d+)$/)?.[1]) || 0), 0) + 1;
-    const id = `n_o${number}`;
+    const number = objectives.reduce((max, node) => Math.max(max, Number(node.id.match(/^o(\d+)$/)?.[1]) || 0), 0) + 1;
+    const id = `o${number}`;
     const label = `O${objectives.length + 1}: ${title.trim()}`;
     const lines = [...context.layer2.split('\n').filter(Boolean), label];
     const x = objectives.length ? Math.max(...objectives.map((node) => node.position.x)) + 300 : 80;
@@ -428,26 +432,18 @@ export default function App() {
   // Wizard output -> context + node files + graph + timeline + questions, then enter the app.
   const handleInitDone = useCallback(
     async (input) => {
-      const { context: newContext, graph: newGraph, files, timeline: newTimeline, questions: newQuestions } = buildInitialRoadmap(input);
-
-      await Promise.all([
-        api.putContext(1, newContext.layer1),
-        api.putContext(2, newContext.layer2),
-        api.putTimeline(newTimeline),
-        api.putQuestions({ questions: newQuestions }), // also writes layer3 file server-side
-        ...Object.entries(files).map(([id, content]) => api.putNode(id, content)),
-      ]);
-      const saved = await api.putGraph(newGraph);
-      newGraph.revision = saved.revision;
-      serverRevision.current = saved.revision;
-      setContext(newContext);
-      setTimeline(newTimeline);
-      setQuestions(newQuestions);
-      graphRef.current = newGraph;
+      const result = await api.initializeProject(input);
+      serverRevision.current = result.graph.revision || 0;
+      sourceFingerprint.current = result.fingerprint || '';
+      setContext(result.context);
+      setTimeline(result.timeline);
+      setQuestions(result.questions.questions || []);
+      setTeam(result.team);
+      graphRef.current = result.graph;
       history.current = { past: [], future: [] };
       setCanUndo(false);
       setCanRedo(false);
-      setGraph(newGraph);
+      setGraph(result.graph);
       setInitialized(true);
     },
     []
@@ -460,10 +456,16 @@ export default function App() {
     const timer = setInterval(() => {
       if (graphDirty.current) return;
       api.researchState().then((state) => {
-        if (graphDirty.current || state.graph.revision === serverRevision.current) return;
+        if (graphDirty.current || graphRef.current?.historical) return;
+        if (state.graph.revision === serverRevision.current && state.state?.expectedFingerprint === sourceFingerprint.current) return;
         serverRevision.current = state.graph.revision || 0;
+        sourceFingerprint.current = state.state?.expectedFingerprint || '';
         graphRef.current = state.graph;
         setGraph(state.graph);
+        setTimeline(state.timeline);
+        setQuestions(state.questions.questions || []);
+        setContext(state.context);
+        setTeam(state.team || { members: [] });
         setSelectedId((id) => (state.graph.nodes.some((node) => node.id === id) ? id : null));
         setSelectedEdgeId((id) => (state.graph.edges.some((edge) => edge.id === id) ? id : null));
       }).catch(() => {});
@@ -541,13 +543,19 @@ export default function App() {
         onOpenSettings={() => setView('settings')}
         onOpenHelp={() => setView('help')}
       />
+      {view === 'home' && <HomeView graph={graph} timeline={timeline} questions={questions} team={team} onSaveTeam={async (next) => { await api.putTeam(next); setTeam(next); }} onJumpToNode={jumpToNode} onOpenReview={() => setView('review')} />}
+      {view === 'journey' && <JourneyView onShowSnapshot={async (ref) => { const snapshot = await api.gitSnapshot(ref); graphRef.current = snapshot; setGraph(snapshot); setView('map'); setNodeFocus({ key: `history:${ref}`, label: `Historical snapshot ${ref.slice(0, 12)}`, ids: snapshot.nodes.map((node) => node.id) }); }} />}
+      {view === 'evidence' && <EvidenceView graph={graph} questions={questions} onJumpToNode={jumpToNode} />}
+      {view === 'objectives' && <ObjectivesView graph={graph} onJumpToNode={jumpToNode} />}
       {view === 'map' && (
         <div className="main">
+          {graph.historical && <div className="history-banner">Viewing {graph.ref.slice(0, 12)} read-only <button onClick={async () => { const current = await api.getGraph(); graphRef.current = current; setGraph(current); setNodeFocus(null); }}>Return to current</button></div>}
           <TimelineBar months={timeline.months} nodesById={nodesById} activeMilestoneId={nodeFocus?.milestoneId} onFocus={focusMilestone} onChange={saveTimeline} />
             <ReactFlowProvider>
               <Canvas
                 graph={graph}
                 questions={questions}
+                team={team}
                 milestoneNodeIds={milestoneNodeIds}
                 updateGraph={updateGraph}
                 deleteEdge={deleteEdge}
@@ -595,6 +603,7 @@ export default function App() {
           objectiveNodes={graph.nodes.filter((n) => n.data.role === 'objective').sort((a, b) => a.position.x - b.position.x)}
           questions={questions}
           nodes={graph.nodes}
+          edges={graph.edges}
           onSaveTopic={(value) => saveContextLayer(1, value)}
           onSaveObjective={saveObjectiveDetails}
           onAddObjective={addObjective}
@@ -609,6 +618,7 @@ export default function App() {
       {view === 'review' && (
         <ReviewView
           nodes={graph.nodes}
+          edges={graph.edges}
           questions={questions}
           timeline={timeline}
           onJumpToNode={jumpToNode}

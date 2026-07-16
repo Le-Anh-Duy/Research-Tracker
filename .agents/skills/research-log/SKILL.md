@@ -5,21 +5,21 @@ description: "Record research progress in Research Navigator's research_data/: a
 
 # Research Log
 
-Record only what the researcher states; do not invent findings or conclusions. Read `docs/RESEARCH_WORKFLOW.md` and `docs/DEVELOPMENT.md` before direct file writes.
+Record only what the researcher states; do not invent findings or conclusions. Start with `AGENTS.md`, `research_data/PROJECT.md`, and `research_data/STATE.md`, then read only relevant nodes and edges. If `STATE.md` is stale, report it before relying on the summary.
 
 ## Locate and write
 
-Read node frontmatter under `research_data/nodes/` and match by `title`. Ask if ambiguous. When the local server is running, prefer its semantic research API so node/edge documents and reciprocal links change together.
+Inspect first. Before writing, state the exact files and structural changes you intend to make. Write only because the researcher explicitly requested the update. Match stable IDs from `STATE.md`; ask when a title is ambiguous. Use `POST /api/research/apply` when the server runs or `node scripts/research-cli.mjs apply --input <operation.json>` offline for structural/lifecycle changes.
 
 - Append a report to the node body as `## <YYYY-MM-DD>` plus the user's words.
-- Create general implementation, reading, dataset, or preliminary-analysis activity as `role: "work"`; use `experiment`, `decision`, `synthesis`, or `note` only when that meaning is explicit.
-- A floating node has no edge. A connected node requires an edge Markdown document and reciprocal node `from/to` references.
-- Connect work directly to a research-question anchor when the relationship is known; do not treat the objective and RQ as the same entity.
+- Create implementation, reading, dataset preparation, or analysis as `task`; use `idea`, `experiment`, `decision`, `synthesis`, or `note` when explicit. Give placed work one `homeAspect`; ideas/notes may remain floating.
+- A floating node has no edge. A connection is one edge Markdown document; never add reciprocal lists to node frontmatter.
+- Use `step` inside a route, `depends-on` for a blocker, `informs` for non-blocking knowledge, `evidence` for RQ contribution, and `resolves` only from one closing synthesis to its home aspect.
 - Store relationship rationale in the edge body, not in either node's notes.
 - Mark a genuine failed direction `dead` and retain it. Confirm before deleting mistakes or test clutter.
-- Merge only a meaningful result. Record concise `title`, `outcome`, and `status: "merged"`; then ask which RQ it informs, whether the finding is positive/negative/neutral, and its one-line contribution. Leave RQ fields absent if the researcher cannot connect it yet.
-- Set an objective's `met: true` only when the researcher says its exit criterion is satisfied.
+- Merge only a meaningful result and require an outcome. Ask which RQs it contributes to and create explicit evidence edges with rationale; objective membership is not evidence.
+- Retire an aspect or set an objective's `met: true` only after the researcher explicitly approves that human decision. A resolved aspect comes from its merged closing synthesis, not a manual flag.
 - Update `questions.json` only with a researcher-approved answer/status. Use `research-synthesize` for a larger synthesis.
 - Link milestones by adding node IDs to `timeline.json`; milestone completion remains derived.
 
-For direct writes, node metadata owns node meaning, edge metadata owns endpoints/kind, and `graph.json` owns layout/revision only. Preserve unknown metadata. Every edge must appear in its source node's `to` and target node's `from`. Never treat an active node linked to an RQ as evidence; only merged nodes count.
+Simple dated note-body edits may be direct; preserve frontmatter and unknown metadata. After any direct edit run `node scripts/research-cli.mjs refresh-state`, then `state`. Never commit, pull, push, branch, merge, tag, or revert.

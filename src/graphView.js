@@ -1,5 +1,5 @@
 const FOLD_ROLES = new Set(['synthesis', 'decision', 'module']);
-const ROLE_LEVEL = { project: 0, objective: 1, 'research-question': 1, module: 2, synthesis: 2, decision: 2, work: 3, experiment: 3, milestone: 3, note: 4 };
+const ROLE_LEVEL = { project: 0, objective: 1, 'research-question': 1, aspect: 2, synthesis: 2, decision: 3, idea: 3, task: 3, experiment: 3, note: 4 };
 
 export const detailLevelForZoom = (zoom) => zoom < 0.55 ? 'overview' : zoom < 0.85 ? 'compact' : 'detail';
 
@@ -20,12 +20,13 @@ export function classifyGraphEdges(graph) {
   [...graph.edges].sort((a, b) => a.id.localeCompare(b.id)).forEach((edge) => {
     const backedge = nodeImportance(nodes.get(edge.source)) > nodeImportance(nodes.get(edge.target));
     const cycle = !backedge && reaches(edge.target, edge.source);
-    const flowKind = edge.data?.kind === 'merge' || backedge || cycle ? 'reference' : 'dependency';
+    const contextual = !['step', 'depends-on'].includes(edge.data?.kind);
+    const flowKind = contextual || backedge || cycle ? 'reference' : 'dependency';
     if (flowKind === 'dependency') {
       if (!dependency.has(edge.source)) dependency.set(edge.source, new Set());
       dependency.get(edge.source).add(edge.target);
     }
-    classification.set(edge.id, { flowKind, flowReason: edge.data?.kind === 'merge' ? 'evidence' : backedge ? 'backedge' : cycle ? 'cycle' : undefined });
+    classification.set(edge.id, { flowKind, flowReason: contextual ? edge.data?.kind : backedge ? 'backedge' : cycle ? 'cycle' : undefined });
   });
   return graph.edges.map((edge) => ({ ...edge, data: { ...edge.data, ...classification.get(edge.id) } }));
 }
@@ -36,7 +37,7 @@ export function relatedNodeIds(graph, nodeId) {
   const ids = new Set([nodeId]);
   const edges = classifyGraphEdges(graph).filter((edge) => edge.data.flowKind === 'dependency');
   const stack = start.data.role === 'research-question'
-    ? [nodeId, ...graph.nodes.filter((node) => node.data.rq === start.data.questionId).map((node) => node.id)]
+    ? [nodeId, ...graph.edges.filter((edge) => edge.target === nodeId && edge.data?.kind === 'evidence').map((edge) => edge.source)]
     : [nodeId];
   stack.forEach((id) => ids.add(id));
   while (stack.length) {

@@ -1,20 +1,24 @@
 import express from 'express';
 import swaggerUi from 'swagger-ui-express';
 import { openapi } from './openapi.js';
-import { FINDINGS, NODE_STATUSES, graphError, okId, questionsError, timelineError } from './contracts.js';
+import { EDGE_KINDS, FINDINGS, NODE_STATUSES, graphError, okId, questionsError, teamError, timelineError } from './contracts.js';
 import { edgeMetadata, formatResearchDoc, linkedId, nodeMetadata, parseResearchDoc, reciprocalError } from './research-doc.js';
+import { applyResearchOperation, buildProject, buildStateMarkdown, initializeProject, readProject, refreshStateMarkdown, sourceFingerprint } from './research-project.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { historicalGraph, repositoryActivity } from './git-awareness.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA = path.join(__dirname, 'research_data');
+const DATA = process.env.RESEARCH_DATA_DIR ? path.resolve(process.env.RESEARCH_DATA_DIR) : path.join(__dirname, 'research_data');
 const NODES = path.join(DATA, 'nodes');
 const EDGES = path.join(DATA, 'edges');
 const CTX = path.join(DATA, 'context');
 const GRAPH = path.join(DATA, 'graph.json');
+const PROJECT = path.join(DATA, 'PROJECT.md');
 const TIMELINE = path.join(DATA, 'timeline.json');
 const QUESTIONS = path.join(DATA, 'questions.json');
+const TEAM = path.join(DATA, 'team.json');
 const CONFIG = path.join(DATA, 'config.json');
 const REPORTS = path.join(DATA, 'change-reports');
 
@@ -112,6 +116,7 @@ const writeGraph = (graph) => {
   const revision = (Number.isInteger(graph.revision) ? graph.revision : 0) + 1;
   persistEntities(graph);
   fs.writeFileSync(GRAPH, JSON.stringify(graphLayout(graph, revision), null, 2));
+  refreshStateMarkdown(DATA);
   return { ...graph, revision };
 };
 const newId = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -124,6 +129,22 @@ app.get('/api/graph', (req, res) => {
   if (!fs.existsSync(GRAPH)) return res.json({ initialized: false });
   res.json(readGraph());
 });
+
+app.post('/api/research/init/preview', (req, res) => {
+  const project = buildProject(req.body || {});
+  res.json({ graph: project.graph, questions: project.questions, timeline: project.timeline, team: project.team, state: buildStateMarkdown(project) });
+});
+
+app.post('/api/research/init', (req, res) => {
+  if (fs.existsSync(GRAPH)) return res.status(409).json({ error: 'project is already initialized' });
+  const project = initializeProject(DATA, req.body || {});
+  res.status(201).json({
+    ...project,
+    fingerprint: sourceFingerprint(project),
+    context: { layer1: read(path.join(CTX, LAYERS[1])), layer2: read(path.join(CTX, LAYERS[2])), layer3: read(path.join(CTX, LAYERS[3])) },
+  });
+});
+app.post('/api/research/apply', (req, res) => res.json(applyResearchOperation(DATA, req.body || {})));
 
 app.put('/api/graph', (req, res) => {
   const { nodes, edges, expectedRevision } = req.body || {};
@@ -139,15 +160,20 @@ app.put('/api/graph', (req, res) => {
 // Small semantic endpoints for agent-driven experiments. They keep graph and
 // Markdown updates together so an agent does not need to edit JSON by hand.
 app.get('/api/research/state', (req, res) => {
+  const project = readProject(DATA);
+  const expectedFingerprint = sourceFingerprint(project);
+  const storedFingerprint = parseResearchDoc(read(path.join(DATA, 'STATE.md'))).metadata.fingerprint;
   res.json({
     graph: readGraph(),
     timeline: fs.existsSync(TIMELINE) ? JSON.parse(read(TIMELINE)) : { months: [] },
     questions: fs.existsSync(QUESTIONS) ? JSON.parse(read(QUESTIONS)) : { questions: [] },
+    team: fs.existsSync(TEAM) ? JSON.parse(read(TEAM)) : { members: [] },
     context: {
       layer1: read(path.join(CTX, LAYERS[1])),
       layer2: read(path.join(CTX, LAYERS[2])),
       layer3: read(path.join(CTX, LAYERS[3])),
     },
+    state: { stale: storedFingerprint !== expectedFingerprint, storedFingerprint, expectedFingerprint },
   });
 });
 
@@ -171,6 +197,12 @@ app.post('/api/research/nodes', (req, res) => {
       ...(body.anchor === true ? { anchor: true } : {}),
       ...(Array.isArray(body.tags) ? { tags: body.tags.filter((t) => typeof t === 'string') } : {}),
       ...(typeof body.exitCriteria === 'string' ? { exitCriteria: body.exitCriteria } : {}),
+      ...(typeof body.objectiveId === 'string' ? { objectiveId: body.objectiveId } : {}),
+      ...(typeof body.homeAspect === 'string' ? { homeAspect: body.homeAspect } : {}),
+      ...(Array.isArray(body.assignees) ? { assignees: body.assignees } : {}),
+      ...(typeof body.due === 'string' ? { due: body.due } : {}),
+      ...(body.pinned === true ? { pinned: true } : {}),
+      ...(body.external && typeof body.external === 'object' ? { external: body.external } : {}),
     },
   };
   graph.nodes.push(node);
@@ -190,7 +222,8 @@ app.post('/api/research/links', (req, res) => {
   if (!graph.nodes.some((n) => n.id === source) || !graph.nodes.some((n) => n.id === target))
     return res.status(400).json({ error: 'source or target not found' });
   if (graph.edges.some((e) => e.source === source && e.target === target)) return res.status(409).json({ error: 'link exists' });
-  const edge = { id: newId('e'), source, target, data: { kind: kind === 'merge' ? 'merge' : 'step', ...(note ? { note } : {}) } };
+  if (!EDGE_KINDS.includes(kind)) return res.status(400).json({ error: 'bad relationship kind' });
+  const edge = { id: newId('e'), source, target, data: { kind, ...(note ? { note } : {}) } };
   graph.edges.push(edge);
   writeGraph(graph);
   res.status(201).json({ edge });
@@ -203,6 +236,7 @@ app.post('/api/research/log', (req, res) => {
   if (!fs.existsSync(file)) return res.status(404).json({ error: 'node not found' });
   const document = readDoc(file);
   writeDoc(file, document.metadata, `${document.body.trimEnd()}\n\n## ${date}\n${note.trim()}\n`);
+  refreshStateMarkdown(DATA);
   res.json({ ok: true, nodeId });
 });
 
@@ -235,12 +269,17 @@ app.post('/api/research/merge', (req, res) => {
     ...(FINDINGS.includes(finding) ? { finding } : {}),
     ...(typeof contribution === 'string' ? { contribution } : {}),
   };
-  graph.edges = graph.edges.map((edge) => edge.source === nodeId ? { ...edge, data: { ...edge.data, kind: 'merge' } } : edge);
+  const questionNode = rq && graph.nodes.find((candidate) => candidate.data.questionId === rq);
+  if (questionNode && !graph.edges.some((edge) => edge.source === nodeId && edge.target === questionNode.id)) {
+    graph.edges.push({ id: newId('e'), source: nodeId, target: questionNode.id, data: { kind: 'evidence', note: contribution || `Evidence for ${rq}` } });
+  }
   writeGraph(graph);
   res.json({ ok: true, node });
 });
 
 app.get('/api/openapi.json', (req, res) => res.json({ ...openapi, servers: [{ url: `${req.protocol}://${req.get('host')}`, description: 'Current server' }] }));
+app.get('/api/git/activity', (req, res) => res.json(repositoryActivity(__dirname)));
+app.get('/api/git/snapshot/:ref', (req, res) => res.json(historicalGraph(__dirname, req.params.ref)));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(undefined, {
   explorer: true,
   customSiteTitle: 'Research Navigator API',
@@ -256,11 +295,23 @@ app.put('/api/timeline', (req, res) => {
   const error = timelineError({ months });
   if (error) return res.status(400).json({ error });
   fs.writeFileSync(TIMELINE, JSON.stringify({ months }, null, 2));
+  refreshStateMarkdown(DATA);
   res.json({ ok: true });
 });
 
 app.get('/api/questions', (req, res) => {
   res.json(fs.existsSync(QUESTIONS) ? JSON.parse(read(QUESTIONS, '{"questions":[]}')) : { questions: [] });
+});
+
+app.get('/api/team', (req, res) => res.json(fs.existsSync(TEAM) ? JSON.parse(read(TEAM, '{"members":[]}')) : { members: [] }));
+
+app.put('/api/team', (req, res) => {
+  const value = { members: req.body?.members };
+  const error = teamError(value);
+  if (error) return res.status(400).json({ error });
+  fs.writeFileSync(TEAM, JSON.stringify(value, null, 2) + '\n');
+  refreshStateMarkdown(DATA);
+  res.json({ ok: true });
 });
 
 app.put('/api/questions', (req, res) => {
@@ -272,9 +323,10 @@ app.put('/api/questions', (req, res) => {
   // skills (research-export) still see current RQ text. questions.json is the
   // source of truth; layer3 is a derived view.
   const line = questions
-    .map((q, i) => `RQ${i + 1}${q.obj >= 0 ? ` (O${q.obj + 1})` : ''}: ${q.text}`)
+    .map((q) => `${q.id}${q.objectiveIds?.length ? ` (${q.objectiveIds.join(', ')})` : ''}: ${q.text}`)
     .join('\n');
   fs.writeFileSync(path.join(CTX, LAYERS[3]), line);
+  refreshStateMarkdown(DATA);
   res.json({ ok: true });
 });
 
@@ -289,6 +341,7 @@ app.put('/api/node/:id', (req, res) => {
   if (typeof content !== 'string') return res.status(400).json({ error: 'bad content' });
   const file = path.join(NODES, req.params.id + '.md');
   writeDoc(file, readDoc(file).metadata, content);
+  refreshStateMarkdown(DATA);
   res.json({ ok: true });
 });
 
@@ -312,6 +365,11 @@ app.put('/api/context/:layer', (req, res) => {
   const { content } = req.body || {};
   if (typeof content !== 'string') return res.status(400).json({ error: 'bad content' });
   fs.writeFileSync(path.join(CTX, file), content);
+  if (req.params.layer === '1' && fs.existsSync(PROJECT)) {
+    const project = readDoc(PROJECT);
+    writeDoc(PROJECT, { ...project.metadata, topic: content }, project.body.replace(/^# .*$/m, `# ${content}`));
+  }
+  if (fs.existsSync(GRAPH)) refreshStateMarkdown(DATA);
   res.json({ ok: true });
 });
 

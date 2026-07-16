@@ -1,4 +1,6 @@
 const FONTS = [
+  ['be-vietnam', 'Be Vietnam Pro'],
+  ['inter', 'Inter'],
   ['segoe', 'Segoe UI'],
   ['system', 'System'],
   ['arial', 'Arial'],
@@ -42,4 +44,3 @@ export default function SettingsView({ preferences, onChange }) {
     </div>
   );
 }
-

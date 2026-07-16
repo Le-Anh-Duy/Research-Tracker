@@ -45,14 +45,26 @@ export default function Canvas({
   const [hoverEdge, setHoverEdge] = useState(null);
   const [zoom, setZoom] = useState(1);
   const [foldedRootIds, setFoldedRootIds] = useState([]);
+  const [tidy, setTidy] = useState(false);
   const [selectedNodeIds, setSelectedNodeIds] = useState([]);
   const [newNode, setNewNode] = useState(null);
   const [createError, setCreateError] = useState('');
 
   const detailLevel = detailLevelForZoom(zoom);
   const projection = foldProjection(graph, foldedRootIds, focusedNodeIds);
+  const tidyPositions = new Map();
+  if (tidy) {
+    const rows = new Map();
+    projection.nodes.forEach((node) => {
+      const row = nodeImportance(node);
+      if (!rows.has(row)) rows.set(row, []);
+      rows.get(row).push(node);
+    });
+    rows.forEach((items, row) => items.sort((a, b) => a.id.localeCompare(b.id)).forEach((node, index) => tidyPositions.set(node.id, { x: 80 + index * 250, y: 60 + row * 190 })));
+  }
   const nodes = projection.nodes.map((n) => ({
     ...n,
+    position: tidyPositions.get(n.id) || n.position,
     type: 'research',
     selected: selectedNodeIds.includes(n.id),
     data: {
@@ -67,7 +79,7 @@ export default function Canvas({
       focusState: focusState(n.id, focusedNodeIds),
       role:
         n.data.role ||
-        (n.id === 'n_start'
+        (n.id === 'project'
           ? 'project'
           : n.data.anchor
             ? 'objective'
@@ -150,7 +162,7 @@ export default function Canvas({
       if (!event.target.classList.contains('react-flow__pane')) return;
       const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
       setCreateError('');
-      setNewNode({ position, title: '', role: 'work' });
+      setNewNode({ position, title: '', role: 'task' });
     },
     [screenToFlowPosition]
   );
@@ -160,7 +172,7 @@ export default function Canvas({
     const title = newNode.title.trim();
     if (!title) return;
     const id = 'n_' + Date.now();
-    const kind = ['synthesis', 'module'].includes(newNode.role) ? newNode.role : undefined;
+    const kind = newNode.role === 'synthesis' ? 'synthesis' : undefined;
     try {
       await api.putNode(id, `# ${title}\n`);
       updateGraph(
@@ -186,6 +198,9 @@ export default function Canvas({
         </button>
         <button className="undo-btn" onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)">
           Redo
+        </button>
+        <button className="undo-btn" onClick={() => setTidy((value) => !value)} title="Temporary layout; canonical positions are never overwritten">
+          {tidy ? 'Canonical layout' : 'Tidy temporarily'}
         </button>
         {canFocusSelected && (
           <button className="undo-btn" onClick={() => onFocusNode(selectedId)}>
@@ -238,6 +253,7 @@ export default function Canvas({
         multiSelectionKeyCode="Control"
         selectionMode={SelectionMode.Partial}
         deleteKeyCode={null}
+        nodesDraggable={!tidy}
         fitView
         fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
       >
@@ -260,10 +276,10 @@ export default function Canvas({
             <div className="field">
               <label>Type</label>
               <select value={newNode.role} onChange={(event) => setNewNode({ ...newNode, role: event.target.value })}>
-                <option value="work">Work</option>
+                <option value="task">Task</option>
+                <option value="idea">Idea</option>
                 <option value="experiment">Experiment</option>
                 <option value="decision">Decision</option>
-                <option value="module">Module / branch</option>
                 <option value="synthesis">Synthesis</option>
                 <option value="note">Note / dump</option>
               </select>
