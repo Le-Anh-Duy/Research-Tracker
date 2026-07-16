@@ -4,7 +4,6 @@ const FINDING_MARK = { positive: '+', negative: '−', neutral: '~' };
 
 export default function ResearchNode({ data }) {
   const isSynthesis = data.role === 'synthesis' || data.kind === 'synthesis';
-  const isModule = data.role === 'module' || data.kind === 'module';
   const showDetail = data.detailLevel === 'detail';
   const showFooter = data.detailLevel !== 'overview';
   const hasCustomColor = Boolean(data.color);
@@ -14,7 +13,6 @@ export default function ResearchNode({ data }) {
     data.anchor ? 'anchor' : '',
     data.role === 'research-question' ? 'question' : '',
     isSynthesis ? 'synthesis' : '',
-    isModule ? 'module' : '',
     hasCustomColor ? 'custom-color' : '',
     data.isSelected ? 'sel' : '',
     data.focusState,

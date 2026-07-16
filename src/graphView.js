@@ -1,4 +1,4 @@
-const FOLD_ROLES = new Set(['synthesis', 'decision', 'module']);
+const FOLD_ROLES = new Set(['aspect', 'synthesis', 'decision']);
 const ROLE_LEVEL = { project: 0, objective: 1, 'research-question': 1, aspect: 2, synthesis: 2, decision: 3, idea: 3, task: 3, experiment: 3, note: 4 };
 
 export const detailLevelForZoom = (zoom) => zoom < 0.55 ? 'overview' : zoom < 0.85 ? 'compact' : 'detail';

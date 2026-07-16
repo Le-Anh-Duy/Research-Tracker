@@ -26,6 +26,7 @@ export function graphError(graph) {
     if (node.data.objectiveId && !okId(node.data.objectiveId)) return `bad objective for ${node.id}`;
     if (node.data.assignees && (!Array.isArray(node.data.assignees) || !node.data.assignees.every(okId))) return `bad assignees for ${node.id}`;
     if (!okDate(node.data.due)) return `bad due date for ${node.id}`;
+    if (node.data.priorityRank !== undefined && (!Number.isInteger(node.data.priorityRank) || node.data.priorityRank < 0)) return `bad priority rank for ${node.id}`;
     if (node.data.external !== undefined) {
       if (!node.data.external || typeof node.data.external !== 'object' || Array.isArray(node.data.external)) return `bad external reference for ${node.id}`;
       if (Object.values(node.data.external).some((value) => typeof value !== 'string')) return `bad external reference for ${node.id}`;

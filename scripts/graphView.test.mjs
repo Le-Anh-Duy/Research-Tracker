@@ -12,6 +12,7 @@ assert.equal(detailLevelForZoom(0.4), 'overview');
 assert.equal(detailLevelForZoom(0.7), 'compact');
 assert.equal(detailLevelForZoom(1), 'detail');
 assert.equal(canFoldNode(graph.nodes.find((item) => item.id === 's')), true);
+assert.equal(canFoldNode(node('aspect', 'aspect')), true);
 assert.ok(nodeImportance(graph.nodes.find((item) => item.id === 'o')) < nodeImportance(graph.nodes.find((item) => item.id === 'b')));
 const classified = classifyGraphEdges(graph);
 assert.equal(classified.find((item) => item.id === 'b_s').data.flowReason, 'backedge');
@@ -31,4 +32,10 @@ assert.deepEqual(foldProjection(graph, ['s'], ['b']).hiddenNodeIds, []);
 const deduped = foldProjection({ ...graph, edges: [...graph.edges, edge('s', 'rq')] }, ['s']);
 assert.equal(deduped.edges.filter((item) => item.source === 's' && item.target === 'rq').length, 1);
 assert.equal(graph.edges.some((item) => item.data.flowKind), false);
+
+const aspectGraph = {
+  nodes: [node('aspect', 'aspect'), node('task', 'task'), node('closing', 'synthesis')],
+  edges: [edge('aspect', 'task'), edge('aspect', 'closing'), edge('task', 'closing')],
+};
+assert.deepEqual(new Set(foldBranchIds(aspectGraph, 'aspect')), new Set(['task', 'closing']));
 console.log('graph view: ok');

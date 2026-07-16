@@ -198,6 +198,11 @@ export default function App() {
     [updateGraph]
   );
 
+  const reorderPriorities = useCallback((nodeIds) => {
+    const ranks = new Map(nodeIds.map((id, index) => [id, index]));
+    updateGraph((current) => ({ ...current, nodes: current.nodes.map((node) => ranks.has(node.id) ? { ...node, data: { ...node.data, priorityRank: ranks.get(node.id) } } : node) }), { immediate: true });
+  }, [updateGraph]);
+
   const patchEdgeData = useCallback(
     (id, patch) => {
       updateGraph((g) => ({
@@ -543,7 +548,7 @@ export default function App() {
         onOpenSettings={() => setView('settings')}
         onOpenHelp={() => setView('help')}
       />
-      {view === 'home' && <HomeView graph={graph} timeline={timeline} questions={questions} team={team} onSaveTeam={async (next) => { await api.putTeam(next); setTeam(next); }} onJumpToNode={jumpToNode} onOpenReview={() => setView('review')} />}
+      {view === 'home' && <HomeView graph={graph} timeline={timeline} questions={questions} team={team} onSaveTeam={async (next) => { await api.putTeam(next); setTeam(next); }} onJumpToNode={jumpToNode} onOpenReview={() => setView('review')} onReorderPriorities={reorderPriorities} />}
       {view === 'journey' && <JourneyView onShowSnapshot={async (ref) => { const snapshot = await api.gitSnapshot(ref); graphRef.current = snapshot; setGraph(snapshot); setView('map'); setNodeFocus({ key: `history:${ref}`, label: `Historical snapshot ${ref.slice(0, 12)}`, ids: snapshot.nodes.map((node) => node.id) }); }} />}
       {view === 'evidence' && <EvidenceView graph={graph} questions={questions} onJumpToNode={jumpToNode} />}
       {view === 'objectives' && <ObjectivesView graph={graph} onJumpToNode={jumpToNode} />}
