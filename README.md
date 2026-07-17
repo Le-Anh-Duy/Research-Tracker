@@ -24,6 +24,7 @@ Initialization creates plain Markdown and JSON only after confirmation.
 
 ```bash
 npm run check                    # tests + production build
+npm run research:preflight       # Git diff + configured research fingerprint
 npm run research -- state        # check whether STATE.md is current
 npm run research:mcp             # local stdio MCP server
 ```
@@ -74,7 +75,7 @@ RESEARCH_DATA_DIR=research_data.local
 
 `research_data.local/` has no special behavior in the application; it is this
 checkout's private active directory and is ignored by the repository's
-`*.local` rule. The npm `dev`, `start`, `research`, `research:mcp`, and
+`*.local` rule. The npm `dev`, `start`, `research`, `research:preflight`, `research:mcp`, and
 `research:export` commands load `.env.local`. A direct CLI call must receive the
 environment variable or `--data-dir <path>` explicitly.
 
@@ -96,10 +97,10 @@ An implementation agent starts with only:
 2. `docs/ARCHITECTURE.md`
 3. the relevant row in `docs/DEVELOPMENT.md`
 
-It then reads the named owner, shared domain module, and nearest test. Research
-agents first resolve the active data directory, then start with `AGENTS.md`,
-`<data-dir>/PROJECT.md`, and `<data-dir>/STATE.md` before opening only relevant
-node and edge files.
+It then reads the named owner, shared domain module, and nearest test. Agents run
+the read-only preflight before relying on earlier context. For arbitrary research
+questions, MCP routes to compact references and reads one focused context instead
+of returning the whole project.
 
 Agents inspect by default. Before writing, they state the exact files and
 structural changes and wait for an explicit request. The `research-init` skill,

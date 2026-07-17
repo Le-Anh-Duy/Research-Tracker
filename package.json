@@ -8,9 +8,10 @@
     "dev": "concurrently -k \"node --env-file-if-exists=.env.local --watch server.js\" \"vite\"",
     "build": "vite build",
     "check": "npm test && npm run build",
-    "test": "node scripts/contracts.test.mjs && node scripts/research-doc.test.mjs && node scripts/research-domain.test.mjs && node scripts/research-actions.test.mjs && node scripts/research-project.test.mjs && node scripts/research-export.test.mjs && node scripts/server-smoke.test.mjs && node scripts/roadmap.test.mjs && node scripts/timelineStatus.test.mjs && node scripts/preferences.test.mjs && node scripts/selection.test.mjs && node scripts/graphView.test.mjs",
+    "test": "node scripts/contracts.test.mjs && node scripts/research-doc.test.mjs && node scripts/research-domain.test.mjs && node scripts/research-actions.test.mjs && node scripts/research-project.test.mjs && node scripts/research-context.test.mjs && node scripts/research-export.test.mjs && node scripts/server-smoke.test.mjs && node scripts/roadmap.test.mjs && node scripts/timelineStatus.test.mjs && node scripts/preferences.test.mjs && node scripts/selection.test.mjs && node scripts/graphView.test.mjs",
     "start": "node --env-file-if-exists=.env.local server.js",
     "research": "node --env-file-if-exists=.env.local scripts/research-cli.mjs",
+    "research:preflight": "git status --short --branch && git diff --stat && node --env-file-if-exists=.env.local scripts/research-preflight.mjs",
     "research:mcp": "node --env-file-if-exists=.env.local scripts/research-mcp.mjs",
     "research:export": "node --env-file-if-exists=.env.local scripts/research-export.mjs"
   },

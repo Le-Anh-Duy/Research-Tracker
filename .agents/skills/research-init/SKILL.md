@@ -14,7 +14,7 @@ Act as interviewer, not planner. Ask one question at a time and never invent the
 5. Offer a fog-of-war timeline: detail the current month, leave later months broad, and add one O/RQ progress review to every month.
 6. Ask whether initial nodes should be connected or floating.
 
-Before writing, resolve `<data-dir>` from `RESEARCH_DATA_DIR` in `.env.local`, falling back to `research_data`. Treat it as the only active research state; `research_data.local` is not a second schema or fallback. Read `AGENTS.md`, `docs/RESEARCH_WORKFLOW.md`, `<data-dir>/PROJECT.md` (when present), and `<data-dir>/STATE.md` (when present). If `<data-dir>/graph.json` exists, stop: initialization never overwrites an existing project.
+Before writing, run `npm run research:preflight`, then resolve `<data-dir>` from `RESEARCH_DATA_DIR` in `.env.local`, falling back to `research_data`. Treat it as the only active research state; `research_data.local` is not a second schema or fallback. Read `AGENTS.md`, `docs/RESEARCH_WORKFLOW.md`, `<data-dir>/PROJECT.md` (when present), and `<data-dir>/STATE.md` (when present). If `<data-dir>/graph.json` exists, stop: initialization never overwrites an existing project.
 
 Create the interview result as a temporary JSON input outside `<data-dir>/`. Before any project write:
 

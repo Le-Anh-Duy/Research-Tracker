@@ -13,6 +13,7 @@ npm run check
 node scripts/research-cli.mjs preview --input project.json
 node scripts/research-cli.mjs init --input project.json
 node scripts/research-cli.mjs state
+npm run research:preflight
 ```
 
 The direct CLI defaults to `RESEARCH_DATA_DIR` and then `research_data/`.
@@ -31,7 +32,8 @@ temporary `--data-dir` in tests and examples that write.
 | Map behavior | `Canvas.jsx`, `graphView.js` | `graphView.test.mjs` |
 | Timeline | `TimelineBar.jsx`, `timelineStatus.js` | timeline test |
 | HTTP | `server.js`, `src/api.js`, `docs/API.md` | tests + build |
-| Agent surface | CLI/MCP script and relevant skill | temp-data CLI check |
+| Agent routing/context | `research-context.js`, MCP script, relevant skill | `research-context.test.mjs` |
+| Agent writes/init | CLI/MCP script and relevant skill | temp-data CLI check |
 | Git/Journey | `git-awareness.js`, `JourneyView.jsx` | read-only temp-repo check |
 
 ## Durable contract

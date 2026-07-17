@@ -42,3 +42,15 @@ knowledge. A new task should reference superseded work when useful.
 External experiment references record portable repository URL, commit, run ID,
 and artifact-relative path. Never commit absolute machine paths, raw logs,
 datasets, or checkpoints into this coordination repository.
+
+## Agent retrieval
+
+Before relying on earlier context, run `npm run research:preflight`. Git reports
+tracked worktree changes; the research fingerprint detects changes in the
+configured data directory even when that directory is ignored.
+
+For an arbitrary project question, route the original question plus optional
+agent-supplied search hints to at most five typed references. Read focused
+context for one selected node, question, month, milestone, or project reference,
+then follow a side branch only when needed. Text selects the starting point;
+graph relationships explain and expand it but never change search ranking.

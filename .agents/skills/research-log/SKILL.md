@@ -5,7 +5,7 @@ description: "Record research progress and researcher-agent agreements in Resear
 
 # Research Log
 
-Record only what the researcher states; do not invent findings or conclusions. Resolve `<data-dir>` from `RESEARCH_DATA_DIR` in `.env.local`, falling back to `research_data`. Treat that path as the only active research state; do not inspect or merge a similarly named sibling such as `research_data.local`. The `.local` suffix is only an ignored checkout convention. Start with `AGENTS.md`, `<data-dir>/PROJECT.md`, and `<data-dir>/STATE.md`, then read only relevant nodes and edges. If `STATE.md` is stale, report it before relying on the summary.
+Record only what the researcher states; do not invent findings or conclusions. Run `npm run research:preflight` first and compare an earlier session fingerprint when available. Resolve `<data-dir>` from `RESEARCH_DATA_DIR` in `.env.local`, falling back to `research_data`. Treat that path as the only active research state; do not inspect or merge a similarly named sibling such as `research_data.local`. The `.local` suffix is only an ignored checkout convention. Start with `AGENTS.md`, `<data-dir>/PROJECT.md`, and `<data-dir>/STATE.md`, then read only relevant nodes and edges. If `STATE.md` is stale, report it before relying on the summary.
 
 ## Locate and write
 

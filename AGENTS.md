@@ -5,10 +5,11 @@ whole repository before every change.
 
 ## Start here
 
-1. Read `docs/ARCHITECTURE.md` for boundaries and sources of truth.
-2. Find the requested behavior in the feature map in `docs/DEVELOPMENT.md`.
-3. Read only the listed owner, persistence module, and nearest test.
-4. Search for every reader and writer of any field or function you will change.
+1. Run `npm run research:preflight` before relying on repository or research context. When a fingerprint was already read in the current session, pass it as `-- --expected-fingerprint <fingerprint>`.
+2. Read `docs/ARCHITECTURE.md` for boundaries and sources of truth.
+3. Find the requested behavior in the feature map in `docs/DEVELOPMENT.md`.
+4. Read only the listed owner, persistence module, and nearest test.
+5. Search for every reader and writer of any field or function you will change.
 
 For the planned agentic research-workspace redesign, also read
 `docs/AGENTIC_RESEARCH_WORKSPACE_PLAN.md`; it records the approved product
@@ -39,6 +40,7 @@ research roadmap; they are not required for ordinary application features.
 - Do not read, rewrite, or depend on the user's configured research data while
   developing application features.
 - Preserve unrelated working-tree changes.
+- If preflight finds new user changes, inspect overlapping diffs and re-read changed research context before continuing. State an updated understanding only when the change affects the request; ask only when ambiguity remains.
 
 ## Verification
 

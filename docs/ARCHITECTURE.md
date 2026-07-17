@@ -19,6 +19,7 @@ The shared domain is deliberately server-independent:
 - `contracts.js`: durable shape validation;
 - `research-doc.js`: Markdown frontmatter and wikilinks;
 - `research-domain.js`: derived progress, evidence, blockers, warnings, priorities;
+- `research-context.js`: compact question routing and focused graph/timeline context;
 - `research-actions.js`: pure semantic graph operations and human-approval gates;
 - `research-project.js`: project build/read/init/fingerprint/`STATE.md` generation;
 - `git-awareness.js`: fixed-argument, read-only Git status/history/snapshots.
@@ -26,6 +27,12 @@ The shared domain is deliberately server-independent:
 `server.js` adapts these operations to HTTP. `scripts/research-cli.mjs` and
 `scripts/research-mcp.mjs` are offline agent surfaces. React is a projection and
 working copy; it is not a second source of research truth.
+
+MCP question retrieval is progressive: text and agent-supplied hints select a
+small set of typed references, then graph relationships build focused context
+for one selected reference. Relationships never boost search ranking. The MCP
+reader is stateless and rebuilds its in-memory index when the source fingerprint
+changes.
 
 `<data-dir>` resolves from `RESEARCH_DATA_DIR`; without it, the default is
 `research_data/`. The npm entry points load the ignored `.env.local`, so runtime

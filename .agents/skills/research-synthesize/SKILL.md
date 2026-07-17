@@ -5,7 +5,7 @@ description: Gather merged Research Navigator evidence for one research question
 
 # Research Synthesize
 
-The researcher owns the claim. Gather and draft; never decide the answer for them. Resolve `<data-dir>` from `RESEARCH_DATA_DIR` in `.env.local`, falling back to `research_data`, and use only that directory.
+The researcher owns the claim. Gather and draft; never decide the answer for them. Run `npm run research:preflight` first and compare an earlier session fingerprint when available. Resolve `<data-dir>` from `RESEARCH_DATA_DIR` in `.env.local`, falling back to `research_data`, and use only that directory.
 
 1. Read `AGENTS.md`, `<data-dir>/PROJECT.md`, and `<data-dir>/STATE.md`, then `<data-dir>/questions.json`; use the named RQ or ask which one.
 2. Find its research-question node and follow incoming `evidence` edges. Keep only merged source nodes. Objective membership and active work are not evidence.
