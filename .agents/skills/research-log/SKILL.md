@@ -1,11 +1,11 @@
 ---
 name: research-log
-description: "Record research progress in Research Navigator's research_data/: append notes, create or connect work, record decisions, mark dead ends, merge findings into RQs, tag nodes, link milestones, and update RQ answers. Use when the user reports research progress, results, ideas, failures, or roadmap changes."
+description: "Record research progress and researcher-agent agreements in Research Navigator's configured research data directory: append notes, create or connect work, record decisions, maintain per-session agreement logs, mark dead ends, merge findings into RQs, tag nodes, link milestones, and update RQ answers. Use when the user reports progress, results, ideas, failures, roadmap changes, clarifies plans, or asks Codex to remember session agreements."
 ---
 
 # Research Log
 
-Record only what the researcher states; do not invent findings or conclusions. Start with `AGENTS.md`, `research_data/PROJECT.md`, and `research_data/STATE.md`, then read only relevant nodes and edges. If `STATE.md` is stale, report it before relying on the summary.
+Record only what the researcher states; do not invent findings or conclusions. Resolve `<data-dir>` from `RESEARCH_DATA_DIR` in `.env.local`, falling back to `research_data`. Treat that path as the only active research state; do not inspect or merge a similarly named sibling such as `research_data.local`. The `.local` suffix is only an ignored checkout convention. Start with `AGENTS.md`, `<data-dir>/PROJECT.md`, and `<data-dir>/STATE.md`, then read only relevant nodes and edges. If `STATE.md` is stale, report it before relying on the summary.
 
 ## Locate and write
 
@@ -22,4 +22,15 @@ Inspect first. Before writing, state the exact files and structural changes you 
 - Update `questions.json` only with a researcher-approved answer/status. Use `research-synthesize` for a larger synthesis.
 - Link milestones by adding node IDs to `timeline.json`; milestone completion remains derived.
 
-Simple dated note-body edits may be direct; preserve frontmatter and unknown metadata. After any direct edit run `node scripts/research-cli.mjs refresh-state`, then `state`. Never commit, pull, push, branch, merge, tag, or revert.
+## Session agreement log
+
+During roadmap clarification, maintain a session log when `<data-dir>/chat_with_agent_logs/` exists or the researcher asks for one.
+
+- Use one file per conversation session: `chat_with_agent_logs/YYYY-MM-DD_<session-slug>.md`. Reuse it throughout that session; start a new file for a later session.
+- Derive a short Vietnamese ASCII slug from the main topic when the session name is obvious; ask only when it is genuinely ambiguous.
+- Record concise agreements, not a transcript. Put tentative ideas and unanswered questions under `Điểm còn mở`, then update them when resolved.
+- Distinguish discussion from applied state: say whether `timeline.json`, nodes, questions, or other durable sources were actually changed.
+- Update the log after a meaningful agreement, not after every message. Never treat the log itself as scientific evidence or an approved RQ answer.
+- Before writing, state the exact session-log path and any other files that will change.
+
+Simple dated note-body and session-log edits may be direct; preserve frontmatter and unknown metadata. After any direct edit run `node scripts/research-cli.mjs refresh-state --data-dir <data-dir>`, then `node scripts/research-cli.mjs state --data-dir <data-dir>`. Never commit, pull, push, branch, merge, tag, or revert.

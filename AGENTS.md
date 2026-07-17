@@ -14,6 +14,12 @@ For the planned agentic research-workspace redesign, also read
 `docs/AGENTIC_RESEARCH_WORKSPACE_PLAN.md`; it records the approved product
 decisions and phased acceptance criteria.
 
+For research-roadmap work, resolve the active data directory from
+`RESEARCH_DATA_DIR` in `.env.local`, falling back to `research_data/`. Read only
+that directory; do not inspect or merge a similarly named fallback directory.
+`research_data.local/` is this checkout's ignored private state, not a second
+schema. For application development, use synthetic temporary data instead.
+
 Read `docs/API.md` only for HTTP changes and `docs/RESEARCH_WORKFLOW.md` only
 for research-domain behavior. The skills under `.agents/skills/` operate the
 research roadmap; they are not required for ordinary application features.
@@ -30,7 +36,7 @@ research roadmap; they are not required for ordinary application features.
 - Give a non-trivial pure rule one small `scripts/*.test.mjs` assertion test.
 - Update the feature map or API docs when ownership, behavior, or a request
   shape changes. Do not duplicate architecture documentation here.
-- Do not read, rewrite, or depend on the user's ignored `research_data/` while
+- Do not read, rewrite, or depend on the user's configured research data while
   developing application features.
 - Preserve unrelated working-tree changes.
 

@@ -46,7 +46,7 @@ evidence, and resolves.
 ## Flat-file project state
 
 ```text
-research_data/
+<data-dir>/
   PROJECT.md          human-owned compass and scope
   STATE.md            generated compact agent/researcher entry point
   team.json           informational member registry
@@ -63,9 +63,30 @@ changes. Git is the collaboration contract. Journey can read status, commits,
 `research/checkpoint/*` tags, and historical graphs, but the app never performs
 Git mutations.
 
-This template intentionally ignores `research_data/` because the maintainer's
-local thesis notes are private. A project created from this template may choose
-to track its own `research_data/` and synchronize it through Git.
+### Choosing the data directory
+
+`research_data/` is the default. Set `RESEARCH_DATA_DIR` in the ignored
+`.env.local` file to use another directory for this checkout:
+
+```dotenv
+RESEARCH_DATA_DIR=research_data.local
+```
+
+`research_data.local/` has no special behavior in the application; it is this
+checkout's private active directory and is ignored by the repository's
+`*.local` rule. The npm `dev`, `start`, `research`, `research:mcp`, and
+`research:export` commands load `.env.local`. A direct CLI call must receive the
+environment variable or `--data-dir <path>` explicitly.
+
+Use only the configured directory for research operations. Do not fall back to
+or merge another similarly named directory. Developers and tests use synthetic
+temporary data rather than either real directory.
+
+This template also ignores `research_data/` because the maintainer's thesis
+notes are private. A repository that wants Git-synchronized research state may
+remove that ignore rule and track `research_data/`. Journey history currently
+reads the tracked `research_data/` path; ignored `.local` state is intentionally
+absent from commits and pushes.
 
 ## Agent-friendly development
 
@@ -76,8 +97,9 @@ An implementation agent starts with only:
 3. the relevant row in `docs/DEVELOPMENT.md`
 
 It then reads the named owner, shared domain module, and nearest test. Research
-agents start with `AGENTS.md`, `research_data/PROJECT.md`, and
-`research_data/STATE.md`, then open only relevant node and edge files.
+agents first resolve the active data directory, then start with `AGENTS.md`,
+`<data-dir>/PROJECT.md`, and `<data-dir>/STATE.md` before opening only relevant
+node and edge files.
 
 Agents inspect by default. Before writing, they state the exact files and
 structural changes and wait for an explicit request. The `research-init` skill,

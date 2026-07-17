@@ -8,7 +8,7 @@ checkpoints stay in external workspaces.
 
 ```text
 Web UI -> HTTP API ----+
-CLI / MCP / skills ----+-> research-project + research-actions -> research_data/
+CLI / MCP / skills ----+-> research-project + research-actions -> <data-dir>/
                               |
                               +-> generated STATE.md
 Git history ----------------------> read-only Journey projection
@@ -27,7 +27,15 @@ The shared domain is deliberately server-independent:
 `scripts/research-mcp.mjs` are offline agent surfaces. React is a projection and
 working copy; it is not a second source of research truth.
 
+`<data-dir>` resolves from `RESEARCH_DATA_DIR`; without it, the default is
+`research_data/`. The npm entry points load the ignored `.env.local`, so runtime
+and agent surfaces use the same configured directory. A path such as
+`research_data.local/` is a private local override, not a second source of
+truth. Git/Journey history remains scoped to tracked `research_data/` state.
+
 ## Durable sources
+
+All paths below are relative to the resolved `<data-dir>`.
 
 | File | Owns |
 | --- | --- |

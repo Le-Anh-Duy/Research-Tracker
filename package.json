@@ -9,9 +9,9 @@
     "build": "vite build",
     "check": "npm test && npm run build",
     "test": "node scripts/contracts.test.mjs && node scripts/research-doc.test.mjs && node scripts/research-domain.test.mjs && node scripts/research-actions.test.mjs && node scripts/research-project.test.mjs && node scripts/research-export.test.mjs && node scripts/server-smoke.test.mjs && node scripts/roadmap.test.mjs && node scripts/timelineStatus.test.mjs && node scripts/preferences.test.mjs && node scripts/selection.test.mjs && node scripts/graphView.test.mjs",
-    "start": "node server.js",
-    "research": "node scripts/research-cli.mjs",
-    "research:mcp": "node scripts/research-mcp.mjs",
+    "start": "node --env-file-if-exists=.env.local server.js",
+    "research": "node --env-file-if-exists=.env.local scripts/research-cli.mjs",
+    "research:mcp": "node --env-file-if-exists=.env.local scripts/research-mcp.mjs",
     "research:export": "node --env-file-if-exists=.env.local scripts/research-export.mjs"
   },
   "dependencies": {

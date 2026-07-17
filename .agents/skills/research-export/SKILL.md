@@ -15,6 +15,9 @@ Use the deterministic exporter. Do not reconstruct the report yourself.
    npm run research:export -- --output PLAN_EXPORT.md
    ```
 
+   This command loads `RESEARCH_DATA_DIR` from `.env.local` and otherwise uses
+   `research_data`. Do not inspect a similarly named sibling directory.
+
 2. Report the output path and byte count printed by the command.
 3. Do not read the generated file unless the user asks for a summary, critique, or narrative version.
 

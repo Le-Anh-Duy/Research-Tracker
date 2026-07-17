@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -28,6 +29,13 @@ try {
   assert.ok(fs.existsSync(path.join(dir, 'STATE.md')));
   assert.match(fs.readFileSync(path.join(dir, 'STATE.md'), 'utf8'), new RegExp(sourceFingerprint(initialized)));
   assert.equal(buildStateMarkdown(initialized), fs.readFileSync(path.join(dir, 'STATE.md'), 'utf8'));
+  const cliState = spawnSync(process.execPath, ['scripts/research-cli.mjs', 'state'], {
+    cwd: path.resolve('.'),
+    env: { ...process.env, RESEARCH_DATA_DIR: dir },
+    encoding: 'utf8',
+  });
+  assert.equal(cliState.status, 0, cliState.stderr);
+  assert.equal(JSON.parse(cliState.stdout).stale, false);
 
   const objective = parseResearchDoc(fs.readFileSync(path.join(dir, 'nodes', 'o1.md'), 'utf8'));
   assert.equal(objective.metadata.role, 'objective');

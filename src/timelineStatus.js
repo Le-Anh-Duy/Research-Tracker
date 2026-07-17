@@ -18,3 +18,12 @@ export function monthStatus(month, nodesById) {
   if (statuses.some((s) => s === 'done' || s === 'active')) return 'active';
   return 'planned';
 }
+
+export function reorderMilestones(milestones, draggedId, targetId) {
+  const from = milestones.findIndex(({ id }) => id === draggedId);
+  const to = milestones.findIndex(({ id }) => id === targetId);
+  if (from < 0 || to < 0 || from === to) return milestones;
+  const next = [...milestones];
+  next.splice(to, 0, next.splice(from, 1)[0]);
+  return next;
+}

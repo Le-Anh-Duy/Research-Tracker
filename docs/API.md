@@ -28,8 +28,11 @@ node scripts/research-cli.mjs apply --input operation.json
 npm run research:export -- --output PLAN_EXPORT.md
 ```
 
-Set `RESEARCH_DATA_DIR` when launching `npm run research:mcp` to target a
-non-default project folder.
+`npm run research`, `npm run research:mcp`, and `npm run research:export` load
+`RESEARCH_DATA_DIR` from the ignored `.env.local`, falling back to
+`research_data/`. Direct CLI calls use the process environment or an explicit
+`--data-dir <path>`. Once resolved, that directory is the only active research
+state for the operation.
 
 ## Writes
 

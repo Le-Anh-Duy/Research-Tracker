@@ -1,8 +1,8 @@
 # Development guide
 
 Read `AGENTS.md`, then use this feature map. Do not scan the whole repository.
-Never use the ignored private `research_data/` as a fixture; tests create a
-temporary directory.
+Never use `research_data/`, `research_data.local/`, or another configured real
+research directory as a fixture; tests create a temporary directory.
 
 ## Commands
 
@@ -14,6 +14,10 @@ node scripts/research-cli.mjs preview --input project.json
 node scripts/research-cli.mjs init --input project.json
 node scripts/research-cli.mjs state
 ```
+
+The direct CLI defaults to `RESEARCH_DATA_DIR` and then `research_data/`.
+`npm run research -- <command>` also loads `.env.local`. Always pass an explicit
+temporary `--data-dir` in tests and examples that write.
 
 ## Feature map
 
