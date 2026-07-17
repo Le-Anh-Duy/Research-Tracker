@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { milestoneStatus, monthStatus } from '../src/timelineStatus.js';
+import { milestoneStatus, monthStatus, reorderMilestones } from '../src/timelineStatus.js';
 
 const nodesById = {
   a: { data: { status: 'merged' } },
@@ -17,5 +17,9 @@ assert.equal(monthStatus({ milestones: [] }, nodesById), 'planned');
 assert.equal(monthStatus({ milestones: [{ nodeIds: ['a'] }, { nodeIds: ['a'] }] }, nodesById), 'done');
 assert.equal(monthStatus({ milestones: [{ nodeIds: ['a'] }, { nodeIds: [] }] }, nodesById), 'active');
 assert.equal(monthStatus({ milestones: [{ nodeIds: [] }, { nodeIds: [] }] }, nodesById), 'planned');
+
+const milestones = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+assert.deepEqual(reorderMilestones(milestones, 'c', 'a').map(({ id }) => id), ['c', 'a', 'b']);
+assert.equal(reorderMilestones(milestones, 'missing', 'a'), milestones);
 
 console.log('timelineStatus: all assertions passed');

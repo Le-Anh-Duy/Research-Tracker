@@ -10,7 +10,7 @@ const option = (name, fallback) => {
   const index = args.indexOf(name);
   return index >= 0 ? args[index + 1] : fallback;
 };
-const dataDir = path.resolve(option('--data-dir', 'research_data'));
+const dataDir = path.resolve(option('--data-dir', process.env.RESEARCH_DATA_DIR || 'research_data'));
 const inputFile = option('--input');
 const readInput = () => {
   if (!inputFile) throw new Error('--input <project.json> is required');

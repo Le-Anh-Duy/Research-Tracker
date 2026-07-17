@@ -31,6 +31,12 @@ The template repository's current ignored `research_data/` contains private
 thesis material. Never stage, move, rewrite, publish, or use it as a fixture.
 Create synthetic data separately when examples or tests are needed.
 
+At runtime, `research_data/` is the default `<data-dir>`. A checkout may select
+an ignored private directory such as `research_data.local/` through
+`RESEARCH_DATA_DIR` in `.env.local`; agents must resolve that setting before
+research work and must not combine both directories. Git/Journey applies only
+to research state actually tracked at `research_data/`.
+
 ## Research model
 
 ### Objective structure

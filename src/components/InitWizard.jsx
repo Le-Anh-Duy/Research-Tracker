@@ -349,8 +349,8 @@ export default function InitWizard({ onDone }) {
               </span>
             </label>
             <p className="help">
-              This writes plain text files into <code>research_data/</code> — everything stays on your machine, and
-              you can edit any of it later.
+              This writes plain text files into the configured research data directory — everything stays on your
+              machine, and you can edit any of it later.
             </p>
           </>
         )}

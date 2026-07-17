@@ -37,5 +37,6 @@ export const researchState = () => fetch('/api/research/state').then(json);
 export const previewProject = (input) => post('/api/research/init/preview', input);
 export const initializeProject = (input) => post('/api/research/init', input);
 export const applyResearchOperation = (operation) => post('/api/research/apply', operation);
+export const getPlanExport = () => fetch('/api/research/export').then(json);
 export const gitActivity = () => fetch('/api/git/activity').then(json);
 export const gitSnapshot = (ref) => fetch(`/api/git/snapshot/${encodeURIComponent(ref)}`).then(json);

@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { historicalGraph, repositoryActivity } from './git-awareness.js';
+import { buildPlanExport } from './research-export.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA = process.env.RESEARCH_DATA_DIR ? path.resolve(process.env.RESEARCH_DATA_DIR) : path.join(__dirname, 'research_data');
@@ -145,6 +146,7 @@ app.post('/api/research/init', (req, res) => {
   });
 });
 app.post('/api/research/apply', (req, res) => res.json(applyResearchOperation(DATA, req.body || {})));
+app.get('/api/research/export', (req, res) => res.json({ filename: 'PLAN_EXPORT.md', content: buildPlanExport(readProject(DATA)) }));
 
 app.put('/api/graph', (req, res) => {
   const { nodes, edges, expectedRevision } = req.body || {};

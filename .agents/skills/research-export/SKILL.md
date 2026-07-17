@@ -1,23 +1,34 @@
 ---
 name: research-export
-description: Generate a read-only, shareable Markdown snapshot of Research Navigator's topic, objectives, RQs, evidence, timeline, and active/dead work. Use for status reports, teammate handoffs, or thesis progress summaries.
+description: Export a read-only Research Navigator plan/map snapshot as Markdown with hierarchy, priorities, RQs, evidence, warnings, and a Mermaid event timeline. Use for plan exports, roadmap reports, timeline/Gantt-like views, status handoffs, or thesis progress snapshots.
 ---
 
 # Research Export
 
-Do not modify `research_data/`.
+Use the deterministic exporter. Do not reconstruct the report yourself.
 
-Read `PROJECT.md` and `STATE.md` first. Then gather only the questions, objectives, aspects, nodes, and edge rationales needed for the requested report. `graph.json` is layout only unless spatial order matters.
+## Default workflow
 
-Produce a compact report, omitting empty sections:
+1. From the repository root, run:
 
-1. Research questions: status and human-written answer.
-2. Objectives: research/enabling kind, exit criterion, human met/open state, and `n of m aspects synthesized`.
-3. Evidence by RQ: every merged source connected by an explicit `evidence` edge, including its rationale and finding when recorded.
-4. Timeline: milestone progress derived from linked node statuses.
-5. Up to five current priorities with their derived reasons, assignments, and due dates; then other active work.
-6. Decisions and dead ends, including brief rationale.
+   ```bash
+   npm run research:export -- --output PLAN_EXPORT.md
+   ```
 
-Never invent an answer or interpret active work as evidence. Omit ideas and notes from progress. Include retired and superseded work only where it explains scope/history.
+   This command loads `RESEARCH_DATA_DIR` from `.env.local` and otherwise uses
+   `research_data`. Do not inspect a similarly named sibling directory.
 
-Print the report in the reply by default. Only when asked, write `ROADMAP_SNAPSHOT.md` at the repo root.
+2. Report the output path and byte count printed by the command.
+3. Do not read the generated file unless the user asks for a summary, critique, or narrative version.
+
+For a requested filename, replace `PLAN_EXPORT.md` with that path. Never write inside the research data folder.
+
+## Context boundary
+
+- Do not inspect application source, `docs/`, Git history, or unrelated repository files.
+- Do not enumerate or manually read nodes, edges, or JSON before exporting; the script owns data gathering and derived calculations.
+- Do not modify research files. This skill is read-only except for the requested export file.
+- If the user requests interpretation after export, read only the generated Markdown first. Open a specific research file only when the user explicitly requests missing detail that the export does not contain.
+- Never invent evidence, answers, dates, progress, or relationship meaning.
+
+The export already contains the objective/aspect/work hierarchy, derived progress, up to five priorities, RQ evidence state, readable milestone details, Mermaid timeline, cross-links, retained decisions/dead ends, and warnings.

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { milestoneStatus, monthStatus } from '../timelineStatus';
+import { milestoneStatus, monthStatus, reorderMilestones } from '../timelineStatus';
 
 const DOT = { planned: '○', active: '◐', done: '●', stalled: '!' };
 const id = (prefix) => `${prefix}_${Date.now()}`;
@@ -9,6 +9,7 @@ export default function TimelineBar({ months, nodesById, activeMilestoneId, onFo
   const [collapsed, setCollapsed] = useState(false);
   const [monthDraft, setMonthDraft] = useState(null);
   const [milestoneDraft, setMilestoneDraft] = useState(null);
+  const [draggedMilestone, setDraggedMilestone] = useState(null);
   const nodes = Object.values(nodesById).filter((node) => node.id !== 'project');
   const objectives = nodes.filter((node) => node.data.role === 'objective').sort((a, b) => a.position.x - b.position.x);
   let firstUnfinishedSeen = false;
@@ -81,6 +82,15 @@ export default function TimelineBar({ months, nodesById, activeMilestoneId, onFo
     nodeIds: [...(milestone?.nodeIds || [])],
   });
 
+  const dropMilestone = async (month, targetId) => {
+    if (draggedMilestone?.monthId !== month.id) return;
+    const milestones = reorderMilestones(month.milestones, draggedMilestone.id, targetId);
+    if (milestones !== month.milestones) {
+      await onChange(months.map((item) => item.id === month.id ? { ...item, milestones } : item));
+    }
+    setDraggedMilestone(null);
+  };
+
   return (
     <aside className={'timeline-bar' + (collapsed ? ' collapsed' : '')} aria-label="Research timeline">
       <div className="timeline-head">
@@ -138,7 +148,28 @@ export default function TimelineBar({ months, nodesById, activeMilestoneId, onFo
                     const status = milestoneStatus(milestone, nodesById);
                     const linked = milestone.nodeIds.length > 0;
                     return (
-                      <div className={'milestone-row s-' + status + (activeMilestoneId === milestone.id ? ' selected' : '')} key={milestone.id}>
+                      <div
+                        className={'milestone-row s-' + status + (activeMilestoneId === milestone.id ? ' selected' : '') + (draggedMilestone?.id === milestone.id ? ' dragging' : '')}
+                        key={milestone.id}
+                        onDragOver={(event) => {
+                          if (draggedMilestone?.monthId === month.id) {
+                            event.preventDefault();
+                            event.dataTransfer.dropEffect = 'move';
+                          }
+                        }}
+                        onDrop={() => dropMilestone(month, milestone.id)}
+                      >
+                        <span
+                          className="milestone-grip"
+                          draggable="true"
+                          onDragStart={(event) => {
+                            setDraggedMilestone({ monthId: month.id, id: milestone.id });
+                            event.dataTransfer.effectAllowed = 'move';
+                          }}
+                          onDragEnd={() => setDraggedMilestone(null)}
+                          title="Drag to reorder"
+                          aria-label={`Drag ${milestone.title} to reorder`}
+                        >⋮⋮</span>
                         <span className="milestone-dot" title={status}>{DOT[status]}</span>
                         {linked ? (
                           <button type="button" className="milestone-title" onClick={() => onFocus(milestone)} title={`Focus ${milestone.nodeIds.length} linked node${milestone.nodeIds.length === 1 ? '' : 's'}`}>

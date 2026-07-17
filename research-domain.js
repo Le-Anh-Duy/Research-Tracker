@@ -1,5 +1,12 @@
 const ACTIONABLE_ROLES = new Set(['task', 'experiment', 'decision', 'synthesis']);
 
+export function aspectWorkProgress(aspectId, nodes = []) {
+  const work = nodes.filter((node) => ACTIONABLE_ROLES.has(node.data?.role)
+    && node.data.homeAspect === aspectId
+    && !['retired', 'superseded'].includes(node.data.status));
+  return { complete: work.filter((node) => node.data.status === 'merged').length, total: work.length };
+}
+
 export function indexEdges(edges = []) {
   const incoming = new Map();
   const outgoing = new Map();
@@ -111,7 +118,23 @@ export function priorityTasks({ nodes = [], edges = [], timeline = { months: [] 
       return { node, reasons, score };
     })
     .filter((item) => item.score > 0)
-    .sort((a, b) => b.score - a.score || a.node.id.localeCompare(b.node.id))
+    .sort((a, b) => {
+      if (a.node.data.pinned && b.node.data.pinned) {
+        const order = (Number.isFinite(a.node.data.priorityRank) ? a.node.data.priorityRank : Number.MAX_SAFE_INTEGER)
+          - (Number.isFinite(b.node.data.priorityRank) ? b.node.data.priorityRank : Number.MAX_SAFE_INTEGER);
+        if (order) return order;
+      }
+      return b.score - a.score || a.node.id.localeCompare(b.node.id);
+    })
     .slice(0, limit)
     .map(({ node, reasons }) => ({ node, reasons }));
+}
+
+export function reorderPriorityIds(ids, draggedId, targetId) {
+  const from = ids.indexOf(draggedId);
+  const to = ids.indexOf(targetId);
+  if (from < 0 || to < 0 || from === to) return ids;
+  const next = [...ids];
+  next.splice(to, 0, next.splice(from, 1)[0]);
+  return next;
 }

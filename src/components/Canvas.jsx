@@ -83,9 +83,7 @@ export default function Canvas({
           ? 'project'
           : n.data.anchor
             ? 'objective'
-            : n.data.kind === 'module'
-              ? 'module'
-              : n.data.kind === 'synthesis'
+            : n.data.kind === 'synthesis'
                 ? 'synthesis'
                 : milestoneNodeIds.has(n.id)
                   ? 'milestone'

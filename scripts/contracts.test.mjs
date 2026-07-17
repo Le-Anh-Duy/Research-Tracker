@@ -8,6 +8,7 @@ const graph = {
 assert.equal(graphError(graph), '');
 assert.match(graphError({ ...graph, nodes: [...graph.nodes, graph.nodes[0]] }), /node ids/);
 assert.match(graphError({ ...graph, edges: [{ id: 'e_1', source: 'n_1', target: 'missing', data: { kind: 'step' } }] }), /endpoint/);
+assert.match(graphError({ ...graph, nodes: [{ ...graph.nodes[0], data: { ...graph.nodes[0].data, priorityRank: -1 } }] }), /priority rank/);
 
 assert.equal(questionsError({ questions: [{ id: 'RQ1', text: 'Why?', objectiveIds: ['o1'], status: 'open', answer: '' }] }), '');
 assert.match(questionsError({ questions: [{ id: 'Q1', text: 'Why?', objectiveIds: [], status: 'open', answer: '' }] }), /RQ<n>/);

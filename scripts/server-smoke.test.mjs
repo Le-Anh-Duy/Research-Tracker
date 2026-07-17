@@ -32,6 +32,9 @@ try {
   assert.equal(initialized.graph.nodes.some((node) => node.data.role === 'aspect'), true);
   const state = await request('/api/research/state');
   assert.equal(state.state.stale, false);
+  const exported = await request('/api/research/export');
+  assert.equal(exported.filename, 'PLAN_EXPORT.md');
+  assert.match(exported.content, /```mermaid\ntimeline/);
   await request('/api/team', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ members: [{ id: 'teammate', name: 'Teammate' }] }) });
   assert.equal((await request('/api/team')).members[0].id, 'teammate');
   const activity = await request('/api/git/activity');

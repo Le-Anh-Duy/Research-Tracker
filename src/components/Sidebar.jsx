@@ -55,11 +55,11 @@ export default function Sidebar({
 
   const isEdge = Boolean(edge);
   const isAnchor = Boolean(node?.data?.anchor);
-  const role = node?.data?.role || (node?.data?.kind === 'synthesis' ? 'synthesis' : node?.data?.kind === 'module' ? 'module' : 'experiment');
+  const role = node?.data?.role || (node?.data?.kind === 'synthesis' ? 'synthesis' : 'experiment');
   const isSynthesis = role === 'synthesis';
-  const isModule = role === 'module';
   const isQuestion = role === 'research-question';
   const isObjective = role === 'objective';
+  const isActionable = ['task', 'experiment', 'decision', 'synthesis'].includes(role);
   const tags = node?.data?.tags || [];
 
   const onMdChange = (value) => {
@@ -84,7 +84,7 @@ export default function Sidebar({
     setTagDraft('');
   };
 
-  const changeRole = (nextRole) => onPatch({ role: nextRole, kind: ['synthesis', 'module'].includes(nextRole) ? nextRole : undefined });
+  const changeRole = (nextRole) => onPatch({ role: nextRole, kind: nextRole === 'synthesis' ? 'synthesis' : undefined });
 
   const handleDeleteNode = () => {
     if (window.confirm(`Delete "${node.data.title}" and its notes? Undo is available until this page is reloaded.\n\nUse "Mark dead end" instead when the work was a real attempt.`)) onDelete();
@@ -123,7 +123,7 @@ export default function Sidebar({
 
   return (
     <aside className="sidebar">
-      <SidebarHeader title={isQuestion ? 'Research question' : isObjective ? 'Objective' : role === 'project' ? 'Project' : isSynthesis ? 'Synthesis' : isModule ? 'Module' : 'Research work'} onClose={onClose} />
+      <SidebarHeader title={isQuestion ? 'Research question' : isObjective ? 'Objective' : role === 'project' ? 'Project' : isSynthesis ? 'Synthesis' : role === 'aspect' ? 'Aspect' : 'Research work'} onClose={onClose} />
 
       <div className="field">
         <label>Title</label>
@@ -139,6 +139,16 @@ export default function Sidebar({
             {!ROLES.some(([value]) => value === role) && <option value={role}>{role} (legacy)</option>}
             {ROLES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
+        </div>
+      )}
+
+      {!isAnchor && isActionable && (
+        <div className="task-planning">
+          <button type="button" className={'pin-button' + (node.data.pinned ? ' on' : '')} onClick={() => onPatch({ pinned: node.data.pinned ? undefined : true, priorityRank: node.data.pinned ? undefined : node.data.priorityRank })}>
+            <span aria-hidden="true">{node.data.pinned ? '●' : '○'}</span>
+            {node.data.pinned ? 'Pinned on Home' : 'Pin to Home'}
+          </button>
+          <label><span>Due</span><input type="date" value={node.data.due || ''} onChange={(event) => onPatch({ due: event.target.value || undefined })} /></label>
         </div>
       )}
 
@@ -186,7 +196,8 @@ export default function Sidebar({
         <summary>{isAnchor ? 'Metadata & appearance' : 'Evidence, tags & appearance'}</summary>
         <div className="sidebar-details-body">
           <div className="field">
-            <label>Tags</label>
+            <label>Topics / tags</label>
+            <small className="field-help">The first tag and node color identify this work on Home.</small>
             <div className="tag-input-row">
               {tags.map((tag) => (
                 <span key={tag} className="tag-chip">
@@ -217,11 +228,6 @@ export default function Sidebar({
               <select multiple value={node.data.assignees || []} onChange={(event) => onPatch({ assignees: [...event.target.selectedOptions].map((option) => option.value) })}>
                 {team.members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}
               </select>
-            </div>
-            <div className="field">
-              <label>Planning</label>
-              <input type="date" value={node.data.due || ''} onChange={(event) => onPatch({ due: event.target.value || undefined })} />
-              <label className="pin-toggle"><input type="checkbox" checked={Boolean(node.data.pinned)} onChange={(event) => onPatch({ pinned: event.target.checked || undefined })} /> Pin on Home</label>
             </div>
             <div className="field evidence-field">
               <label>Research question</label>
@@ -261,7 +267,7 @@ export default function Sidebar({
           )}
 
           <div className="field">
-            <label>Color</label>
+            <label>Topic / node color</label>
             <div className="node-color-row">
               {NODE_COLORS.map((color) => (
                 <button key={color} type="button" className={'node-color-swatch' + (node.data.color === color ? ' selected' : '')} style={{ background: color }} aria-label={`Use ${color}`} onClick={() => onPatch({ color })} />

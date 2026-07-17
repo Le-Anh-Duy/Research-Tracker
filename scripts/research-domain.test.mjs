@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
 import {
   aspectProgress,
+  aspectWorkProgress,
   blockedNodeIds,
   dueDateWarnings,
   evidenceForQuestion,
   indexEdges,
   objectiveProgress,
   priorityTasks,
+  reorderPriorityIds,
 } from '../research-domain.js';
 
 const nodes = [
@@ -17,6 +19,7 @@ const nodes = [
   { id: 'rq1', data: { title: 'Question', role: 'research-question', questionId: 'RQ1', status: 'active' } },
   { id: 't1', data: { title: 'Pinned task', role: 'task', homeAspect: 'a1', status: 'active', pinned: true, due: '2026-07-18' } },
   { id: 't2', data: { title: 'Dependent task', role: 'experiment', homeAspect: 'a1', status: 'active' } },
+  { id: 't3', data: { title: 'Pinned first', role: 'task', homeAspect: 'a1', status: 'active', pinned: true, priorityRank: 0 } },
 ];
 
 const edges = [
@@ -34,6 +37,7 @@ assert.deepEqual(aspectProgress('a1', nodes, edges), {
   closingSynthesisId: 's1',
   status: 'resolved',
 });
+assert.deepEqual(aspectWorkProgress('a1', nodes), { complete: 1, total: 4 });
 assert.deepEqual(objectiveProgress('o1', nodes, edges), {
   objectiveId: 'o1',
   complete: 1,
@@ -51,6 +55,7 @@ const priorities = priorityTasks({
   now: new Date('2026-07-16T00:00:00Z'),
 });
 assert.deepEqual(priorities.map(({ node, reasons }) => [node.id, reasons]), [
+  ['t3', ['pinned']],
   ['t1', ['pinned', 'due soon', 'blocks Dependent task']],
   ['t2', ['current milestone']],
 ]);
@@ -59,5 +64,7 @@ assert.deepEqual(dueDateWarnings(
   nodes,
   { months: [{ id: 'm1', milestones: [{ id: 'ms1', deadline: '2026-07-17', nodeIds: ['t1'] }] }] },
 ), [{ nodeId: 't1', milestoneId: 'ms1', code: 'DUE_AFTER_MILESTONE' }]);
+assert.deepEqual(reorderPriorityIds(['a', 'b', 'c'], 'c', 'a'), ['c', 'a', 'b']);
+assert.equal(reorderPriorityIds(['a', 'b'], 'missing', 'a')[0], 'a');
 
 console.log('research-domain: all assertions passed');
