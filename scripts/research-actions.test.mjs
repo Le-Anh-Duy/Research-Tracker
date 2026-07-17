@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { connectNodes, createNode, setObjectiveMet, transitionNode } from '../research-actions.js';
+import { connectNodes, createNode, setObjectiveMet, transitionNode } from '../core/research-actions.js';
 
 let graph = {
   nodes: [{ id: 'o1', position: { x: 0, y: 0 }, data: { title: 'Objective', role: 'objective', status: 'active', met: false } }],

@@ -3,8 +3,8 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { createResearchReader } from '../research-context.js';
-import { buildProject, initializeProject } from '../research-project.js';
+import { createResearchReader } from '../core/research-context.js';
+import { buildProject, initializeProject } from '../core/research-project.js';
 
 const input = {
   topic: 'Synthetic visual localization study',

@@ -9,7 +9,7 @@ import {
   objectiveProgress,
   priorityTasks,
   reorderPriorityIds,
-} from '../research-domain.js';
+} from '../core/research-domain.js';
 
 const nodes = [
   { id: 'o1', data: { title: 'Research objective', role: 'objective', status: 'active' } },

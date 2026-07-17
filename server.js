@@ -1,14 +1,14 @@
 import express from 'express';
 import swaggerUi from 'swagger-ui-express';
-import { openapi } from './openapi.js';
-import { EDGE_KINDS, FINDINGS, NODE_STATUSES, graphError, okId, questionsError, teamError, timelineError } from './contracts.js';
-import { edgeMetadata, formatResearchDoc, linkedId, nodeMetadata, parseResearchDoc, reciprocalError } from './research-doc.js';
-import { applyResearchOperation, buildProject, buildStateMarkdown, initializeProject, readProject, refreshStateMarkdown, sourceFingerprint } from './research-project.js';
+import { openapi } from './core/openapi.js';
+import { EDGE_KINDS, FINDINGS, NODE_STATUSES, graphError, okId, questionsError, teamError, timelineError } from './core/contracts.js';
+import { edgeMetadata, formatResearchDoc, linkedId, nodeMetadata, parseResearchDoc, reciprocalError } from './core/research-doc.js';
+import { applyResearchOperation, buildProject, buildStateMarkdown, initializeProject, readProject, refreshStateMarkdown, sourceFingerprint } from './core/research-project.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { historicalGraph, repositoryActivity } from './git-awareness.js';
-import { buildPlanExport } from './research-export.js';
+import { historicalGraph, repositoryActivity } from './core/git-awareness.js';
+import { buildPlanExport } from './core/research-export.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA = process.env.RESEARCH_DATA_DIR ? path.resolve(process.env.RESEARCH_DATA_DIR) : path.join(__dirname, 'research_data');

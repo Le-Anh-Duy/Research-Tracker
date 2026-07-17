@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import path from 'node:path';
 import readline from 'node:readline';
-import { createResearchReader } from '../research-context.js';
-import { applyResearchOperation, buildProject, buildStateMarkdown, initializeProject, readProject, refreshStateMarkdown, sourceFingerprint } from '../research-project.js';
+import { createResearchReader } from '../core/research-context.js';
+import { applyResearchOperation, buildProject, buildStateMarkdown, initializeProject, readProject, refreshStateMarkdown, sourceFingerprint } from '../core/research-project.js';
 
 const dataDir = path.resolve(process.env.RESEARCH_DATA_DIR || 'research_data');
 const tools = [

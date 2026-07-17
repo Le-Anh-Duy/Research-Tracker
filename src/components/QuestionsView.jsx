@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { evidenceForQuestion } from '../../research-domain.js';
+import { evidenceForQuestion } from '../../core/research-domain.js';
 
 // The destination board. Experiments live on the Map; this is where their
 // evidence adds up into an answer. Evidence per RQ is DERIVED from nodes

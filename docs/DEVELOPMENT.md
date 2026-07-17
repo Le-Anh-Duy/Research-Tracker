@@ -24,17 +24,17 @@ temporary `--data-dir` in tests and examples that write.
 
 | Change | Read first | Check |
 | --- | --- | --- |
-| Schema/frontmatter | `contracts.js`, `research-doc.js` | contract/doc tests |
-| Progress/evidence/priorities | `research-domain.js` | `research-domain.test.mjs` |
-| Lifecycle/semantic writes | `research-actions.js` | `research-actions.test.mjs` |
-| Init or generated context | `research-project.js`, `InitWizard.jsx` | `research-project.test.mjs` |
+| Schema/frontmatter | `core/contracts.js`, `core/research-doc.js` | contract/doc tests |
+| Progress/evidence/priorities | `core/research-domain.js` | `research-domain.test.mjs` |
+| Lifecycle/semantic writes | `core/research-actions.js` | `research-actions.test.mjs` |
+| Init or generated context | `core/research-project.js`, `InitWizard.jsx` | `research-project.test.mjs` |
 | Home/team/tasks | `HomeView.jsx`, `Sidebar.jsx` | domain tests + build |
 | Map behavior | `Canvas.jsx`, `graphView.js` | `graphView.test.mjs` |
 | Timeline | `TimelineBar.jsx`, `timelineStatus.js` | timeline test |
 | HTTP | `server.js`, `src/api.js`, `docs/API.md` | tests + build |
-| Agent routing/context | `research-context.js`, MCP script, relevant skill | `research-context.test.mjs` |
+| Agent routing/context | `core/research-context.js`, MCP script, relevant skill | `research-context.test.mjs` |
 | Agent writes/init | CLI/MCP script and relevant skill | temp-data CLI check |
-| Git/Journey | `git-awareness.js`, `JourneyView.jsx` | read-only temp-repo check |
+| Git/Journey | `core/git-awareness.js`, `JourneyView.jsx` | read-only temp-repo check |
 
 ## Durable contract
 

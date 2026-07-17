@@ -1,5 +1,5 @@
 import { milestoneStatus } from '../timelineStatus';
-import { evidenceForQuestion, objectiveProgress } from '../../research-domain.js';
+import { evidenceForQuestion, objectiveProgress } from '../../core/research-domain.js';
 
 export default function ReviewView({ nodes, edges, questions, timeline, onJumpToNode, onOpenCompass, onExportPlan }) {
   const active = nodes.filter((n) => n.data.status === 'active' && !n.data.anchor && n.data.role !== 'note');

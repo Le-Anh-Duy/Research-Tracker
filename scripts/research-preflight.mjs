@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
-import { readProject, sourceFingerprint } from '../research-project.js';
-import { parseResearchDoc } from '../research-doc.js';
+import { readProject, sourceFingerprint } from '../core/research-project.js';
+import { parseResearchDoc } from '../core/research-doc.js';
 
 const args = process.argv.slice(2);
 const option = (name) => {

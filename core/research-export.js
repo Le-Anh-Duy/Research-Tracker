@@ -1,6 +1,6 @@
 import { aspectWorkProgress, dueDateWarnings, evidenceForQuestion, objectiveProgress, priorityTasks } from './research-domain.js';
 import { sourceFingerprint } from './research-project.js';
-import { milestoneStatus } from './src/timelineStatus.js';
+import { milestoneStatus } from '../src/timelineStatus.js';
 
 const WORK_ROLES = new Set(['idea', 'task', 'experiment', 'decision', 'synthesis', 'note']);
 const mark = { active: '○', merged: '●', dead: '×', retired: '–', superseded: '↪' };

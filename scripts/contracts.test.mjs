@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { graphError, questionsError, teamError, timelineError } from '../contracts.js';
+import { graphError, questionsError, teamError, timelineError } from '../core/contracts.js';
 
 const graph = {
   nodes: [{ id: 'n_1', position: { x: 0, y: 0 }, data: { title: 'Test', status: 'active', outcome: '' } }],

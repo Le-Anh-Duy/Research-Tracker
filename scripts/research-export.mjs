@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
-import { buildPlanExport } from '../research-export.js';
-import { readProject } from '../research-project.js';
+import { buildPlanExport } from '../core/research-export.js';
+import { readProject } from '../core/research-project.js';
 
 const args = process.argv.slice(2);
 const option = (name, fallback) => {

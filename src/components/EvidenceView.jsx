@@ -1,4 +1,4 @@
-import { evidenceForQuestion } from '../../research-domain.js';
+import { evidenceForQuestion } from '../../core/research-domain.js';
 
 export default function EvidenceView({ graph, questions, onJumpToNode }) {
   return <div className="review-view"><div className="review-inner">

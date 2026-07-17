@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import path from 'node:path';
 import fs from 'node:fs';
-import { applyResearchOperation, buildProject, buildStateMarkdown, initializeProject, readProject, refreshStateMarkdown, sourceFingerprint } from '../research-project.js';
-import { parseResearchDoc } from '../research-doc.js';
+import { applyResearchOperation, buildProject, buildStateMarkdown, initializeProject, readProject, refreshStateMarkdown, sourceFingerprint } from '../core/research-project.js';
+import { parseResearchDoc } from '../core/research-doc.js';
 
 const args = process.argv.slice(2);
 const command = args.shift();

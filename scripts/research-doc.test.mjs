@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { edgeMetadata, formatResearchDoc, linkedId, nodeMetadata, parseResearchDoc, relationshipError } from '../research-doc.js';
+import { edgeMetadata, formatResearchDoc, linkedId, nodeMetadata, parseResearchDoc, relationshipError } from '../core/research-doc.js';
 
 const edge = { id: 'e_a_b', source: 'n_a', target: 'n_b', data: { kind: 'step', note: 'why' } };
 const a = { id: 'n_a', data: { title: 'A', status: 'active' } };

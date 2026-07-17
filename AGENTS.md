@@ -30,7 +30,7 @@ research roadmap; they are not required for ordinary application features.
 - Reuse the nearest existing component, helper, and styling pattern.
 - Keep UI-only state in React; keep durable research meaning in Markdown and
   the documented JSON sources of truth.
-- Put shared validation in `contracts.js` or the server boundary, not only in
+- Put shared validation in `core/contracts.js` or the server boundary, not only in
   a component.
 - Preserve graph revision checks. Edge files exclusively own endpoints and relationship meaning; do not add reciprocal edge lists to nodes.
 - Add no dependency when the platform or installed stack handles the change.

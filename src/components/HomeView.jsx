@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { aspectWorkProgress, dueDateWarnings, evidenceForQuestion, objectiveProgress, priorityTasks, reorderPriorityIds } from '../../research-domain.js';
+import { aspectWorkProgress, dueDateWarnings, evidenceForQuestion, objectiveProgress, priorityTasks, reorderPriorityIds } from '../../core/research-domain.js';
 import * as api from '../api';
 
 export default function HomeView({ graph, timeline, questions, team, onSaveTeam, onJumpToNode, onOpenReview, onReorderPriorities }) {

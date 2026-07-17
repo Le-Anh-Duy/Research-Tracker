@@ -66,4 +66,4 @@ Accepted refs are commit hashes or `research/checkpoint/*` tags. These endpoints
 never check out, commit, branch, tag, pull, push, merge, or revert.
 
 Swagger remains available at `http://localhost:3001/api-docs`; update
-`openapi.js` when adding a public HTTP operation.
+`core/openapi.js` when adding a public HTTP operation.

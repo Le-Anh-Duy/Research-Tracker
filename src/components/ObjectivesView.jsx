@@ -1,4 +1,4 @@
-import { aspectProgress, objectiveProgress } from '../../research-domain.js';
+import { aspectProgress, objectiveProgress } from '../../core/research-domain.js';
 
 export default function ObjectivesView({ graph, onJumpToNode }) {
   const objectives = graph.nodes.filter((node) => node.data.role === 'objective');

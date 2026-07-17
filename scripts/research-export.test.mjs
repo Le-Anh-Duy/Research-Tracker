@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { buildPlanExport } from '../research-export.js';
-import { buildProject } from '../research-project.js';
+import { buildPlanExport } from '../core/research-export.js';
+import { buildProject } from '../core/research-project.js';
 
 const project = buildProject({
   topic: 'Synthetic export study',

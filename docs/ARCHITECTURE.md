@@ -8,21 +8,21 @@ checkpoints stay in external workspaces.
 
 ```text
 Web UI -> HTTP API ----+
-CLI / MCP / skills ----+-> research-project + research-actions -> <data-dir>/
+CLI / MCP / skills ----+-> core/research-project + core/research-actions -> <data-dir>/
                               |
                               +-> generated STATE.md
 Git history ----------------------> read-only Journey projection
 ```
 
-The shared domain is deliberately server-independent:
+The shared, server-independent modules live in `core/`:
 
-- `contracts.js`: durable shape validation;
-- `research-doc.js`: Markdown frontmatter and wikilinks;
-- `research-domain.js`: derived progress, evidence, blockers, warnings, priorities;
-- `research-context.js`: compact question routing and focused graph/timeline context;
-- `research-actions.js`: pure semantic graph operations and human-approval gates;
-- `research-project.js`: project build/read/init/fingerprint/`STATE.md` generation;
-- `git-awareness.js`: fixed-argument, read-only Git status/history/snapshots.
+- `core/contracts.js`: durable shape validation;
+- `core/research-doc.js`: Markdown frontmatter and wikilinks;
+- `core/research-domain.js`: derived progress, evidence, blockers, warnings, priorities;
+- `core/research-context.js`: compact question routing and focused graph/timeline context;
+- `core/research-actions.js`: pure semantic graph operations and human-approval gates;
+- `core/research-project.js`: project build/read/init/fingerprint/`STATE.md` generation;
+- `core/git-awareness.js`: fixed-argument, read-only Git status/history/snapshots.
 
 `server.js` adapts these operations to HTTP. `scripts/research-cli.mjs` and
 `scripts/research-mcp.mjs` are offline agent surfaces. React is a projection and
@@ -71,7 +71,7 @@ edge lists.
 | Objectives/RQs | `CompassView.jsx`, `QuestionsView.jsx` |
 | Evidence projection | `EvidenceView.jsx` |
 | Method checks | `ReviewView.jsx` |
-| Read-only Git replay | `JourneyView.jsx`, `git-awareness.js` |
+| Read-only Git replay | `JourneyView.jsx`, `core/git-awareness.js` |
 | Timeline | `TimelineBar.jsx`, `timelineStatus.js` |
 
 ## Authority and synchronization

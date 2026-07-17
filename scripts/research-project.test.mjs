@@ -3,8 +3,8 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { applyResearchOperation, buildProject, buildStateMarkdown, initializeProject, readProject, sourceFingerprint } from '../research-project.js';
-import { parseResearchDoc } from '../research-doc.js';
+import { applyResearchOperation, buildProject, buildStateMarkdown, initializeProject, readProject, sourceFingerprint } from '../core/research-project.js';
+import { parseResearchDoc } from '../core/research-doc.js';
 
 const input = {
   topic: 'Synthetic Vietnamese NLP study',
