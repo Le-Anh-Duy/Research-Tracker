@@ -1,131 +1,118 @@
 # Research Navigator
 
-A desktop-first, local research coordination workspace for computational
-researchers and coding-agent companions. It keeps objectives, research
-questions, aspects, tasks, external experiments, evidence, people, and time in
-one inspectable graph without running experiments itself.
+Research Navigator helps you plan, track, and review a research project in one
+place. It shows how goals, questions, tasks, experiments, decisions, and results
+connect over time.
 
-The Map is the visible memory of the journey: branching ideas, failed routes,
-cross-connections, and converging syntheses stay spatially understandable. Home
-turns that graph into a practical list of at most five explained priorities.
+The app runs on your computer and stores the project as plain Markdown and JSON
+files. Your experiment code, datasets, logs, and model files stay in their own
+repositories or storage locations.
+
+## Why use it?
+
+Research rarely follows a straight line. Ideas change, experiments fail, and a
+useful result may support more than one question. Research Navigator keeps that
+history visible while helping you decide what to work on next.
+
+You can use it to:
+
+- break a large goal into smaller pieces;
+- connect tasks and experiments to the questions they support;
+- keep failed or replaced work without losing the reasoning behind it;
+- plan milestones on a timeline;
+- review evidence before accepting a conclusion;
+- share focused project context with coding agents.
 
 ## Quick start
 
-Requires Node.js 18+.
+Research Navigator requires Node.js 18 or newer.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open `http://localhost:5173`. A new project starts with a six-step wizard:
-topic, objectives, questions, first aspects, optional timeline, and preview.
-Initialization creates plain Markdown and JSON only after confirmation.
+Open `http://localhost:5173`.
 
-```bash
-npm run check                    # tests + production build
-npm run research:preflight       # Git diff + configured research fingerprint
-npm run research -- state        # check whether STATE.md is current
-npm run research:mcp             # local stdio MCP server
-```
+For a new project, the setup wizard asks for the topic, goals, research
+questions, first areas of work, and an optional timeline. It shows a preview
+before creating any files.
 
-## Research model
+## A simple workflow
 
-Each objective is decomposed into aspects. Every aspect owns a flexible work
-DAG and one closing synthesis. Merging the synthesis resolves the aspect; the
-objective then reports `n of m aspects synthesized`. A human decides whether
-the reviewed objective is truly met.
+1. Create a goal for a result you want to reach.
+2. Split the goal into smaller areas that can be worked on separately.
+3. Add ideas, tasks, experiments, notes, and decisions as the work develops.
+4. Connect useful results to the research questions they help answer.
+5. Write a short summary for each finished area.
+6. Review the collected evidence before marking a goal complete.
 
-Objectives and RQs are many-to-many. They are grouped visually, not with fake
-separator nodes. A result contributes to an RQ only through an explicit
-`evidence` relationship. Failed, retired, and superseded work remains visible.
+For example, a model-evaluation goal may have separate areas for baseline
+reproduction, dataset preparation, and robustness testing. Each area can follow
+its own path while still contributing evidence to the same research question.
 
-Nodes: project, objective, research question, aspect, idea, task, experiment,
-decision, synthesis, and note. Relationships: step, depends-on, informs,
-evidence, and resolves.
+## Main views
 
-## Flat-file project state
+- **Home** shows the next priorities, progress, deadlines, and warnings.
+- **Map** shows the research paths and how they connect.
+- **Compass** keeps the topic, goals, research questions, and approved answers.
+- **Evidence** groups finished findings by research question.
+- **Review** shows missing evidence and unfinished work.
+- **Journey** replays tracked project changes from Git history.
+- **Timeline** groups milestones by month or another planning period.
 
-```text
-<data-dir>/
-  PROJECT.md          human-owned compass and scope
-  STATE.md            generated compact agent/researcher entry point
-  team.json           informational member registry
-  questions.json      RQs and human-approved answers
-  timeline.json       periods, milestones, deadlines, linked work
-  graph.json          canonical positions and layout revision only
-  nodes/<id>.md        node metadata and narrative
-  edges/<id>.md        relationship endpoints, type, and rationale
-```
+## Project data
 
-Edge files exclusively own relationships; adjacency and progress are derived.
-The browser watches a full-state fingerprint and safely refreshes external
-changes. Git is the collaboration contract. Journey can read status, commits,
-`research/checkpoint/*` tags, and historical graphs, but the app never performs
-Git mutations.
-
-### Choosing the data directory
-
-`research_data/` is the default. Set `RESEARCH_DATA_DIR` in the ignored
-`.env.local` file to use another directory for this checkout:
+By default, the app stores project files in `research_data/`. To use a different
+directory for one checkout, create an ignored `.env.local` file:
 
 ```dotenv
 RESEARCH_DATA_DIR=research_data.local
 ```
 
-`research_data.local/` has no special behavior in the application; it is this
-checkout's private active directory and is ignored by the repository's
-`*.local` rule. The npm `dev`, `start`, `research`, `research:preflight`, `research:mcp`, and
-`research:export` commands load `.env.local`. A direct CLI call must receive the
-environment variable or `--data-dir <path>` explicitly.
+The chosen directory is the single active source for that checkout. A name such
+as `research_data.local/` has no special behavior; it is only a convenient name
+for private local data.
 
-Use only the configured directory for research operations. Do not fall back to
-or merge another similarly named directory. Developers and tests use synthetic
-temporary data rather than either real directory.
+This repository ignores both its maintainer's research data and `*.local`
+directories. If your own project should keep research state in Git, update the
+ignore rules to match your workflow.
 
-This template also ignores `research_data/` because the maintainer's thesis
-notes are private. A repository that wants Git-synchronized research state may
-remove that ignore rule and track `research_data/`. Journey history currently
-reads the tracked `research_data/` path; ignored `.local` state is intentionally
-absent from commits and pushes.
+## Agent access
 
-## Agent-friendly development
+The project includes a command-line interface, a local MCP server, and agent
+skills for reading and updating research context.
 
-An implementation agent starts with only:
+```bash
+npm run research -- state
+npm run research:preflight
+npm run research:mcp
+```
 
-1. `AGENTS.md`
-2. `docs/ARCHITECTURE.md`
-3. the relevant row in `docs/DEVELOPMENT.md`
+The preflight command checks both Git changes and the active research data
+before an agent relies on earlier context.
 
-It then reads the named owner, shared domain module, and nearest test. Agents run
-the read-only preflight before relying on earlier context. For arbitrary research
-questions, MCP routes to compact references and reads one focused context instead
-of returning the whole project.
+## Documentation
 
-Agents inspect by default. Before writing, they state the exact files and
-structural changes and wait for an explicit request. The `research-init` skill,
-CLI, HTTP API, and MCP surface share the same initializer rather than
-reimplementing multi-file writes.
+- [Research workflow](docs/RESEARCH_WORKFLOW.md) explains how research work,
+  evidence, and review fit together.
+- [Development guide](docs/DEVELOPMENT.md) maps features to their code and
+  tests.
+- [Architecture](docs/ARCHITECTURE.md) describes system boundaries and sources
+  of truth.
+- [API reference](docs/API.md) covers the local HTTP and command-line surfaces.
+- [Agent guide](AGENTS.md) is the starting point for coding agents working on
+  the application.
 
-## Interface
+## Development
 
-- **Home:** priorities, timeline, objective progress, evidence gaps, team, warnings.
-- **Map:** canonical manually positioned research journey.
-- **Compass:** human-owned topic, objectives, questions, and answers.
-- **Evidence:** merged findings and syntheses grouped by RQ.
-- **Review:** gaps, open branches, and ready-for-review work.
-- **Export plan:** download a hierarchical Markdown report with a Mermaid event timeline from Review.
-- **Journey:** read-only Git activity and historical graph replay.
-- **Settings:** warm parchment or sepia-dark themes and Vietnamese-safe fonts.
+Run all tests and create a production build with:
 
-External experiments remain in other repositories/folders. Experiment nodes may
-record a portable repository URL, commit, run ID, and artifact-relative path.
+```bash
+npm run check
+```
 
-Developer references: [architecture](docs/ARCHITECTURE.md),
-[feature map](docs/DEVELOPMENT.md), [research workflow](docs/RESEARCH_WORKFLOW.md),
-and [local API](docs/API.md).
+The app uses React, Vite, React Flow, Express, plain CSS, Markdown, JSON, and
+Git. Optional local summarization with Ollama is not required.
 
-## Stack
-
-React, Vite, React Flow, Express, plain CSS, Markdown, JSON, and Git. Optional
-Ollama summarization is a convenience, not a core dependency. License: MIT.
+License: MIT.
