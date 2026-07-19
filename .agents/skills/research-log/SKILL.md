@@ -1,6 +1,6 @@
 ---
 name: research-log
-description: "Record research progress and researcher-agent agreements in Research Navigator's configured research data directory: append notes, create or connect work, record decisions, maintain per-session agreement logs, mark dead ends, merge findings into RQs, tag nodes, link milestones, and update RQ answers. Use when the user reports progress, results, ideas, failures, roadmap changes, clarifies plans, or asks Codex to remember session agreements."
+description: "Record research progress and researcher-agent agreements in Research Navigator's configured research data directory: append notes, create or connect work, record decisions, maintain per-session agreement logs, mark dead ends, merge findings into RQs, tag nodes, link milestones, and update RQ answers. Use when the user reports progress, results, ideas, failures, roadmap changes, clarifies plans, asks Codex to remember session agreements, or asks to parse, review, compare, or synthesize an external source into a durable research note."
 ---
 
 # Research Log
@@ -10,6 +10,17 @@ Record only what the researcher states; do not invent findings or conclusions. R
 ## Locate and write
 
 Inspect first. Before writing, state the exact files and structural changes you intend to make. Write only because the researcher explicitly requested the update. Match stable IDs from `STATE.md`; ask when a title is ambiguous. Use `POST /api/research/apply` when the server runs or `node scripts/research-cli.mjs apply --input <operation.json>` offline for structural/lifecycle changes.
+
+### Approval gate for synthesized notes
+
+When asked to parse, review, compare, or synthesize an external source into a new note, treat the request as authorization to prepare a draft, not to write durable research state. Before creating a node, edge, task, or session-log entry:
+
+1. Present a concise structured preview of the proposed note.
+2. Distinguish source-verified facts, the researcher's statements, agent inferences, and unresolved questions.
+3. Ask only about unresolved choices, such as ambiguous claims, whether to preserve or correct the supplied interpretation, the node role and placement/edges, and whether suggested actions remain proposals or become tasks.
+4. Obtain explicit researcher approval for both the note content and the announced structural changes.
+
+Do not write while approval is pending. A request such as “parse and note this paper” does not waive this gate. Skip the separate approval only when the researcher explicitly says to write immediately without preview, or when appending a simple dated report that restates researcher-provided progress or an already-approved agreement without adding interpretation or structure.
 
 - Append a report to the node body as `## <YYYY-MM-DD>` plus the user's words.
 - Create implementation, reading, dataset preparation, or analysis as `task`; use `idea`, `experiment`, `decision`, `synthesis`, or `note` when explicit. Give placed work one `homeAspect`; ideas/notes may remain floating.
@@ -21,6 +32,14 @@ Inspect first. Before writing, state the exact files and structural changes you 
 - Retire an aspect or set an objective's `met: true` only after the researcher explicitly approves that human decision. A resolved aspect comes from its merged closing synthesis, not a manual flag.
 - Update `questions.json` only with a researcher-approved answer/status. Use `research-synthesize` for a larger synthesis.
 - Link milestones by adding node IDs to `timeline.json`; milestone completion remains derived.
+
+## Post-update checks
+
+Always complete the workflow's required validation first. After an update created through the approval gate, compare the approved preview with the touched node, edge, session-log, and generated-state files; confirm the intended relationships exist and no unrequested research state changed.
+
+After every durable update, report what changed. For synthesized or structural updates, offer one optional read-only inconsistency check comparing the updated content with `PROJECT.md`, relevant nodes/edges, questions, timeline, and cited sources to flag contradictions, duplicates, unsupported conclusions, stale assumptions, or mismatched relationships.
+
+Do not run the inconsistency check unless the researcher requests it. Report findings without editing; any correction requires the normal preview and approval gate again.
 
 ## Session agreement log
 
