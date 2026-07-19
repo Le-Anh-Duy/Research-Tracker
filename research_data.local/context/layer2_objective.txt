@@ -1,4 +1,0 @@
-O1: Định nghĩa và lựa chọn phép can thiệp attention dựa trên vùng Grounding DINO cho bộ mã hóa ảnh GeoCLIP cố định.
-O2: Đánh giá ảnh hưởng của phép can thiệp lên độ chính xác trên bộ đánh giá gốc và độ bền trước thay đổi miền tự nhiên.
-O3: Đánh giá tính trung thực nhân quả, ảnh hưởng của lỗi Grounding DINO và chi phí tính toán của phép can thiệp.
-O4: Thiết lập kho mã nguồn thực nghiệm điều khiển bằng cấu hình, dễ thay mô-đun và có thể tái lập trên nhiều môi trường.
