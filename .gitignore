@@ -1,9 +1,9 @@
 node_modules/
 dist/
-# Maintainer-private default research state. Remove only in projects that track it.
-research_data/
 # Local checkout state, including research_data.local/ and .env.local.
 *.local
+!research_data.local/
+!research_data.local/**
 
 # CoderMind ignores (managed by `cmind init/update`)
 .cmind/*

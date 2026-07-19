@@ -1,0 +1,230 @@
+{
+  "months": [
+    {
+      "id": "m1",
+      "title": "Tháng 7/2026 — Vùng thử nghiệm có kỷ luật và nền tảng dữ liệu",
+      "current": true,
+      "milestones": [
+        {
+          "id": "m1_ms_sandbox",
+          "title": "Thử nhiều cách trên notebook để hiểu dữ liệu, GeoCLIP, Grounding DINO và vị trí can thiệp",
+          "objectiveId": "o1",
+          "nodeIds": [
+            "task_july_sandbox"
+          ]
+        },
+        {
+          "id": "m1_ms4",
+          "title": "Chuẩn bị, kiểm tra, cấu trúc bộ dữ liệu và thực hiện phân tích dữ liệu khám phá ban đầu",
+          "objectiveId": "o2",
+          "nodeIds": [
+            "task_dataset_foundation"
+          ]
+        },
+        {
+          "id": "m1_ms2",
+          "title": "Chạy GeoCLIP nguyên bản và bản thử nghiệm attention intervention từ đầu vào đến đầu ra",
+          "objectiveId": "o1",
+          "nodeIds": [
+            "task_baseline_proposed_e2e"
+          ]
+        },
+        {
+          "id": "m1_ms3",
+          "title": "Ghi dấu vết tái lập, thất bại và yêu cầu thiết kế cho mã nguồn tháng 8",
+          "objectiveId": "o4",
+          "nodeIds": [
+            "task_repro_design_requirements"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m2",
+      "title": "Tháng 8/2026 — Mã nguồn thực nghiệm tái lập và thử nghiệm thăm dò",
+      "current": false,
+      "milestones": [
+        {
+          "id": "m2_ms1",
+          "title": "Tổ chức mã nguồn theo cấu hình, dễ thay mô-đun, lớp và kiểu can thiệp, tham số và bộ từ vựng",
+          "objectiveId": "o4",
+          "nodeIds": [
+            "task_modular_experiment_repo"
+          ]
+        },
+        {
+          "id": "m2_ms2",
+          "title": "Tái tạo GeoCLIP, phương pháp đề xuất và EDA từ một bản sao sạch trên Colab và Kaggle",
+          "objectiveId": "o4",
+          "nodeIds": [
+            "task_multi_environment_reproduction"
+          ]
+        },
+        {
+          "id": "m2_ms3",
+          "title": "Hoàn thành khoảng 3–4 thực nghiệm thăm dò có ý nghĩa cho RQ1 và tổng hợp phương án cho tháng 9",
+          "objectiveId": "o1",
+          "nodeIds": []
+        }
+      ]
+    },
+    {
+      "id": "m3",
+      "title": "Tháng 9/2026 — Thử nghiệm có hệ thống và chọn cấu hình can thiệp",
+      "current": false,
+      "milestones": [
+        {
+          "id": "m3_ms1",
+          "title": "So sánh theo kế hoạch thống nhất các vị trí can thiệp trong bộ mã hóa ảnh, dạng attention intervention, tham số, bộ từ vựng và các đối chứng phù hợp",
+          "objectiveId": "o1",
+          "nodeIds": []
+        },
+        {
+          "id": "m3_ms2",
+          "title": "Chọn cấu hình can thiệp chính và ghi rõ lý do, giới hạn cùng câu hỏi còn mở",
+          "objectiveId": "o1",
+          "nodeIds": []
+        }
+      ]
+    },
+    {
+      "id": "m4",
+      "title": "Tháng 10/2026 — Độ chính xác và độ bền khi miền dữ liệu thay đổi",
+      "current": false,
+      "milestones": [
+        {
+          "id": "m4_ms1",
+          "title": "Đánh giá trên bộ đánh giá gốc và phân tích theo số vùng đối tượng được phát hiện",
+          "objectiveId": "o2",
+          "nodeIds": []
+        },
+        {
+          "id": "m4_ms2",
+          "title": "Đánh giá các thay đổi miền tự nhiên đã chọn và tổng hợp bằng chứng tạm thời cho RQ2",
+          "objectiveId": "o2",
+          "nodeIds": []
+        },
+        {
+          "id": "m4_ms3",
+          "title": "Đánh giá một số loại nhiễu có kiểm soát nếu tiến độ cho phép",
+          "objectiveId": "o2",
+          "nodeIds": []
+        }
+      ]
+    },
+    {
+      "id": "m5",
+      "title": "Tháng 11/2026 — Ablation study, trường hợp thất bại và củng cố kết quả",
+      "current": false,
+      "milestones": [
+        {
+          "id": "m5_ms1",
+          "title": "Thực hiện ablation study bằng cách tắt, thay hoặc đổi từng thành phần và cấu hình của phép can thiệp",
+          "objectiveId": "o1",
+          "nodeIds": []
+        },
+        {
+          "id": "m5_ms2",
+          "title": "Phân tích phát hiện thiếu/sai, không phát hiện, thiên lệch của bộ phát hiện và phần đánh giá còn kéo dài",
+          "objectiveId": "o3",
+          "nodeIds": []
+        },
+        {
+          "id": "m5_ms3",
+          "title": "Tổng hợp các khía cạnh đã đủ bằng chứng và ghi rõ những hướng cần tiếp tục",
+          "nodeIds": []
+        }
+      ]
+    },
+    {
+      "id": "m6",
+      "title": "Tháng 12/2026 — Tính trung thực nhân quả, hiệu quả và tổng hợp tạm thời",
+      "current": false,
+      "milestones": [
+        {
+          "id": "m6_ms1",
+          "title": "Hoàn thành các đối chứng về tính trung thực nhân quả, gồm che/cắt hoặc đảo vùng đối tượng khi phù hợp",
+          "objectiveId": "o3",
+          "nodeIds": []
+        },
+        {
+          "id": "m6_ms3",
+          "title": "Đo thời gian chạy, bộ nhớ, thông lượng và chi phí tính toán trên cùng phần cứng",
+          "objectiveId": "o3",
+          "nodeIds": []
+        },
+        {
+          "id": "m6_ms2",
+          "title": "Tổng hợp tạm thời RQ1–RQ3 và lập danh sách bằng chứng còn thiếu hoặc mâu thuẫn",
+          "nodeIds": []
+        }
+      ]
+    },
+    {
+      "id": "m7",
+      "title": "Tháng 1/2027 — Hoàn thiện bằng chứng và kết quả nghiên cứu",
+      "current": false,
+      "milestones": [
+        {
+          "id": "m7_ms1",
+          "title": "Thực hiện lại các lần chạy quan trọng và xử lý khoảng trống bằng chứng",
+          "nodeIds": []
+        },
+        {
+          "id": "m7_ms2",
+          "title": "Củng cố kết quả, hạn chế, rủi ro, thông tin tái lập và sản phẩm dùng trong bài viết",
+          "nodeIds": []
+        },
+        {
+          "id": "m7_ms3",
+          "title": "Nhà nghiên cứu xem xét mục tiêu và câu trả lời đề xuất cho RQ1–RQ3",
+          "nodeIds": []
+        }
+      ]
+    },
+    {
+      "id": "m8",
+      "title": "Tháng 2/2027 — Bản thảo đầy đủ và phản biện nội bộ",
+      "current": false,
+      "milestones": [
+        {
+          "id": "m8_ms1",
+          "title": "Ghép nội dung đã viết thành bản thảo đầy đủ đầu tiên và hoàn thiện hình, bảng",
+          "nodeIds": []
+        },
+        {
+          "id": "m8_ms2",
+          "title": "Kiểm tra tuyên bố, trích dẫn, hạn chế, đạo đức và thông tin tái lập",
+          "nodeIds": []
+        },
+        {
+          "id": "m8_ms3",
+          "title": "Nhận phản hồi nội bộ và chỉnh sửa bản thảo",
+          "nodeIds": []
+        }
+      ]
+    },
+    {
+      "id": "m9",
+      "title": "Tháng 3/2027 — Hoàn thiện bài viết và bàn giao nghiên cứu",
+      "current": false,
+      "milestones": [
+        {
+          "id": "m9_ms1",
+          "title": "Xử lý phản hồi, kiểm tra từng tuyên bố với bằng chứng và hoàn thiện bài viết",
+          "nodeIds": []
+        },
+        {
+          "id": "m9_ms2",
+          "title": "Chốt ghi chú tái lập, liên kết sản phẩm và trạng thái cuối của roadmap",
+          "nodeIds": []
+        },
+        {
+          "id": "m9_ms3",
+          "title": "Nhà nghiên cứu xem xét lần cuối, bàn giao và nộp bài nếu hạn chính thức phù hợp",
+          "nodeIds": []
+        }
+      ]
+    }
+  ]
+}
