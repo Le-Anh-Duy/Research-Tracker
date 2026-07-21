@@ -2,8 +2,8 @@ node_modules/
 dist/
 # Local checkout state, including research_data.local/ and .env.local.
 *.local
-!research_data.local/
-!research_data.local/**
+research_data/
+research_data.local/
 
 # CoderMind ignores (managed by `cmind init/update`)
 .cmind/*
