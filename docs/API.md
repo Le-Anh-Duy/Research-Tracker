@@ -42,6 +42,8 @@ PUT  /api/questions              { questions }
 PUT  /api/timeline               { months }
 PUT  /api/team                   { members }
 GET/PUT /api/node/:id            Markdown body only
+GET     /api/research/files      list Markdown paths, titles, metadata, and read-only flags
+GET/PUT /api/research/file       read or replace one existing Markdown file by path
 POST /api/research/nodes         semantic node creation
 POST /api/research/links         typed relationship creation
 POST /api/research/log           append dated note
@@ -54,6 +56,11 @@ GET  /api/research/export         deterministic hierarchy + Mermaid timeline Mar
 Every structural write is validated. Agent workflows must inspect first,
 announce exact intended edits, and write only after an explicit user request.
 RQ answers, aspect retirement, and objective completion require human approval.
+
+`/api/research/file?path=...` accepts only existing `.md` files inside the active
+research data directory. `PUT` requires `{ content, expectedVersion }`, rejects
+stale writes with `409`, validates structural files before keeping them, and
+keeps generated `STATE.md` read-only.
 
 ## Read-only Git
 

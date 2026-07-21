@@ -16,11 +16,14 @@ import HomeView from './components/HomeView';
 import JourneyView from './components/JourneyView';
 import EvidenceView from './components/EvidenceView';
 import ObjectivesView from './components/ObjectivesView';
+import WorkspaceView from './components/WorkspaceView';
 import { questionNodeId, reconcileQuestionNodes } from './roadmap';
 import { loadPreferences } from './preferences';
 import { classifyGraphEdges, relatedNodeIds } from './graphView';
+import { readRoute, routePath } from './routes';
 
 export default function App() {
+  const initialRoute = useRef(readRoute(window.location.pathname)).current;
   const [initialized, setInitialized] = useState(null); // null = loading
   const [loadError, setLoadError] = useState('');
   const [graph, setGraph] = useState(null);
@@ -29,8 +32,9 @@ export default function App() {
   const [questions, setQuestions] = useState([]);
   const [team, setTeam] = useState({ members: [] });
   const [preferences, setPreferences] = useState(() => loadPreferences(localStorage));
-  const [view, setView] = useState('home'); // home | map | compass | review | settings | help
-  const [selectedId, setSelectedId] = useState(null);
+  const [view, setView] = useState(initialRoute.view);
+  const [selectedId, setSelectedId] = useState(initialRoute.nodeId);
+  const [workspacePath, setWorkspacePath] = useState(initialRoute.documentPath);
   const [nodeFocus, setNodeFocus] = useState(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
   const [mergingId, setMergingId] = useState(null);
@@ -49,6 +53,33 @@ export default function App() {
   const lastCk = useRef(0);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+
+  const navigate = useCallback((nextView, options = {}) => {
+    const nodeId = nextView === 'map' ? options.nodeId || null : null;
+    const documentPath = nextView === 'workspace' ? options.documentPath || null : null;
+    const nextPath = routePath(nextView, { nodeId, documentPath });
+    window.history[options.replace ? 'replaceState' : 'pushState']({}, '', nextPath);
+    setView(nextView);
+    if (nextView === 'map') setSelectedId(nodeId);
+    if (nextView === 'workspace') setWorkspacePath(documentPath);
+  }, []);
+
+  useEffect(() => {
+    const onPopState = () => {
+      const route = readRoute(window.location.pathname);
+      setView(route.view);
+      setSelectedId(route.nodeId);
+      setWorkspacePath(route.documentPath);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  useEffect(() => {
+    if (view !== 'map') return;
+    const nextPath = routePath('map', { nodeId: selectedId });
+    if (window.location.pathname !== nextPath) window.history.replaceState({}, '', nextPath);
+  }, [view, selectedId]);
 
   useEffect(() => {
     document.documentElement.dataset.font = preferences.font;
@@ -414,11 +445,10 @@ export default function App() {
   }, [pendingChange]);
 
   const jumpToNode = useCallback((nodeId) => {
-    setView('map');
+    navigate('map', { nodeId });
     setNodeFocus(null);
-    setSelectedId(nodeId);
     setSelectedEdgeId(null);
-  }, []);
+  }, [navigate]);
 
   const focusMilestone = useCallback((milestone) => {
     if (nodeFocus?.milestoneId === milestone.id) {
@@ -552,16 +582,17 @@ export default function App() {
       <TopBar
         context={context}
         view={view}
-        onSetView={setView}
-        onOpenCompass={() => setView('compass')}
-        onOpenReview={() => setView('review')}
-        onOpenSettings={() => setView('settings')}
-        onOpenHelp={() => setView('help')}
+        onSetView={navigate}
+        onOpenCompass={() => navigate('compass')}
+        onOpenReview={() => navigate('review')}
+        onOpenSettings={() => navigate('settings')}
+        onOpenHelp={() => navigate('help')}
       />
-      {view === 'home' && <HomeView graph={graph} timeline={timeline} questions={questions} team={team} onSaveTeam={async (next) => { await api.putTeam(next); setTeam(next); }} onJumpToNode={jumpToNode} onOpenReview={() => setView('review')} onReorderPriorities={reorderPriorities} />}
-      {view === 'journey' && <JourneyView onShowSnapshot={async (ref) => { const snapshot = await api.gitSnapshot(ref); graphRef.current = snapshot; setGraph(snapshot); setView('map'); setNodeFocus({ key: `history:${ref}`, label: `Historical snapshot ${ref.slice(0, 12)}`, ids: snapshot.nodes.map((node) => node.id) }); }} />}
+      {view === 'home' && <HomeView graph={graph} timeline={timeline} questions={questions} team={team} onSaveTeam={async (next) => { await api.putTeam(next); setTeam(next); }} onJumpToNode={jumpToNode} onOpenReview={() => navigate('review')} onReorderPriorities={reorderPriorities} />}
+      {view === 'journey' && <JourneyView onShowSnapshot={async (ref) => { const snapshot = await api.gitSnapshot(ref); graphRef.current = snapshot; setGraph(snapshot); navigate('map'); setNodeFocus({ key: `history:${ref}`, label: `Historical snapshot ${ref.slice(0, 12)}`, ids: snapshot.nodes.map((node) => node.id) }); }} />}
       {view === 'evidence' && <EvidenceView graph={graph} questions={questions} onJumpToNode={jumpToNode} />}
       {view === 'objectives' && <ObjectivesView graph={graph} onJumpToNode={jumpToNode} />}
+      {view === 'workspace' && <WorkspaceView documentPath={workspacePath} onOpenFile={(documentPath) => navigate('workspace', { documentPath })} />}
       {view === 'map' && (
         <div className="main">
           {graph.historical && <div className="history-banner">Viewing {graph.ref.slice(0, 12)} read-only <button onClick={async () => { const current = await api.getGraph(); graphRef.current = current; setGraph(current); setNodeFocus(null); }}>Return to current</button></div>}
@@ -579,7 +610,7 @@ export default function App() {
                 focusedNodeIds={nodeFocus?.ids || []}
                 focusLabel={nodeFocus?.label || ''}
                 focusKey={nodeFocus?.key || ''}
-                onSelect={setSelectedId}
+                onSelect={(nodeId) => navigate('map', { nodeId })}
                 onSelectEdge={setSelectedEdgeId}
                 onClearFocus={() => setNodeFocus(null)}
                 onFocusNode={focusGraphNode}
@@ -597,7 +628,8 @@ export default function App() {
                 onPatch={(patch) => patchNodeData(selectedNode.id, patch)}
                 onMerge={() => setMergingId(selectedNode.id)}
                 onDelete={() => deleteNode(selectedNode.id)}
-                onClose={() => setSelectedId(null)}
+                onOpenWorkspace={() => navigate('workspace', { documentPath: `nodes/${selectedNode.id}.md` })}
+                onClose={() => navigate('map')}
               />
             )}
             {!selectedNode && selectedEdgeId && (
@@ -637,12 +669,12 @@ export default function App() {
           questions={questions}
           timeline={timeline}
           onJumpToNode={jumpToNode}
-          onOpenCompass={() => setView('compass')}
+          onOpenCompass={() => navigate('compass')}
           onExportPlan={exportPlan}
         />
       )}
       {view === 'settings' && <SettingsView preferences={preferences} onChange={setPreferences} />}
-      {view === 'help' && <HelpView onBack={() => setView('map')} />}
+      {view === 'help' && <HelpView onBack={() => navigate('map')} />}
       {pendingChange && <ChangeReviewModal change={pendingChange} onApply={applyChange} onClose={closeChangeReview} />}
       {mergingNode && (
         <MergeModal

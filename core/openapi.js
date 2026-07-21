@@ -13,6 +13,22 @@ export const openapi = {
     '/api/research/state': {
       get: { tags: ['Research actions'], summary: 'Read the complete roadmap state', responses: { 200: { description: 'Graph, timeline, questions, and context.' } } },
     },
+    '/api/research/files': {
+      get: { tags: ['Research actions'], summary: 'List Markdown files in the active research data directory', responses: { 200: { description: 'Titles, metadata, portable paths, and read-only flags.' } } },
+    },
+    '/api/research/file': {
+      get: {
+        tags: ['Research actions'], summary: 'Read one Markdown file',
+        parameters: [{ in: 'query', name: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: 'Content, version, and read-only flag.' }, 400: { description: 'Invalid path.' }, 404: { description: 'File not found.' } },
+      },
+      put: {
+        tags: ['Research actions'], summary: 'Replace one existing Markdown file',
+        parameters: [{ in: 'query', name: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: jsonBody({ type: 'object', required: ['content', 'expectedVersion'], properties: { content: { type: 'string' }, expectedVersion: { type: 'string' } } }),
+        responses: { 200: { description: 'File saved.' }, 403: { description: 'Generated file is read-only.' }, 409: { description: 'File changed elsewhere.' } },
+      },
+    },
     '/api/research/nodes': {
       post: {
         tags: ['Research actions'], summary: 'Create a node',

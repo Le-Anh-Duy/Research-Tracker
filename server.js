@@ -6,6 +6,7 @@ import { edgeMetadata, formatResearchDoc, linkedId, nodeMetadata, parseResearchD
 import { applyResearchOperation, buildProject, buildStateMarkdown, initializeProject, readProject, refreshStateMarkdown, sourceFingerprint } from './core/research-project.js';
 import fs from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { historicalGraph, repositoryActivity } from './core/git-awareness.js';
 import { buildPlanExport } from './core/research-export.js';
@@ -41,6 +42,44 @@ const LAYERS = { 1: 'layer1_topic.txt', 2: 'layer2_objective.txt', 3: 'layer3_re
 const read = (f, fallback = '') => (fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : fallback);
 const readDoc = (file) => parseResearchDoc(read(file));
 const writeDoc = (file, metadata, body) => fs.writeFileSync(file, formatResearchDoc(metadata, body));
+const fileVersion = (content) => createHash('sha256').update(content).digest('hex').slice(0, 16);
+const portablePath = (value) => value.split(path.sep).join('/');
+
+function markdownTarget(value) {
+  if (typeof value !== 'string' || !value || value.includes('\\')) return null;
+  const segments = value.split('/');
+  if (segments.some((segment) => !segment || segment === '.' || segment === '..') || path.posix.extname(value).toLowerCase() !== '.md') return null;
+  const file = path.resolve(DATA, ...segments);
+  const relative = path.relative(DATA, file);
+  if (path.isAbsolute(relative) || relative.startsWith('..')) return null;
+  return { file, path: portablePath(relative), readOnly: portablePath(relative) === 'STATE.md' };
+}
+
+function markdownFilePaths(directory = DATA, prefix = '') {
+  return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) return markdownFilePaths(path.join(directory, entry.name), relative);
+    return entry.isFile() && entry.name.toLowerCase().endsWith('.md')
+      ? [{ path: relative, readOnly: relative === 'STATE.md' }]
+      : [];
+  }).sort((a, b) => a.path.localeCompare(b.path));
+}
+
+function listMarkdownFiles() {
+  const documents = markdownFilePaths().map((file) => {
+    const { metadata, body } = parseResearchDoc(read(path.join(DATA, ...file.path.split('/'))));
+    return { ...file, metadata, heading: body.match(/^#\s+(.+)$/m)?.[1]?.trim() || '' };
+  });
+  const nodeTitles = new Map(documents
+    .filter((file) => file.path.startsWith('nodes/'))
+    .map((file) => [file.metadata.id, file.metadata.title || file.heading || file.metadata.id]));
+  return documents.map(({ heading, ...file }) => {
+    const from = linkedId(file.metadata.from, 'nodes');
+    const to = linkedId(file.metadata.to, 'nodes');
+    const edgeTitle = from && to ? `${file.metadata.kind || 'link'}: ${nodeTitles.get(from) || from} → ${nodeTitles.get(to) || to}` : '';
+    return { ...file, title: file.metadata.title || edgeTitle || heading || file.path.split('/').at(-1) };
+  });
+}
 const graphLayout = (graph, revision) => ({
   nodes: graph.nodes.map(({ id, position }) => ({ id, position })),
   revision,
@@ -335,6 +374,43 @@ app.put('/api/questions', (req, res) => {
 app.get('/api/node/:id', (req, res) => {
   if (!okId(req.params.id)) return res.status(400).json({ error: 'bad id' });
   res.json({ content: readDoc(path.join(NODES, req.params.id + '.md')).body });
+});
+
+app.get('/api/research/files', (req, res) => {
+  res.json({ files: listMarkdownFiles() });
+});
+
+app.get('/api/research/file', (req, res) => {
+  const target = markdownTarget(req.query.path);
+  if (!target) return res.status(400).json({ error: 'bad Markdown path' });
+  if (!fs.existsSync(target.file) || !fs.statSync(target.file).isFile()) return res.status(404).json({ error: 'Markdown file not found' });
+  const realRelative = path.relative(fs.realpathSync(DATA), fs.realpathSync(target.file));
+  if (path.isAbsolute(realRelative) || realRelative.startsWith('..')) return res.status(400).json({ error: 'bad Markdown path' });
+  const content = read(target.file);
+  res.json({ ...target, file: undefined, content, version: fileVersion(content) });
+});
+
+app.put('/api/research/file', (req, res) => {
+  const target = markdownTarget(req.query.path);
+  if (!target) return res.status(400).json({ error: 'bad Markdown path' });
+  if (target.readOnly) return res.status(403).json({ error: 'STATE.md is generated and read-only' });
+  if (!fs.existsSync(target.file) || !fs.statSync(target.file).isFile()) return res.status(404).json({ error: 'Markdown file not found' });
+  const realRelative = path.relative(fs.realpathSync(DATA), fs.realpathSync(target.file));
+  if (path.isAbsolute(realRelative) || realRelative.startsWith('..')) return res.status(400).json({ error: 'bad Markdown path' });
+  const { content, expectedVersion } = req.body || {};
+  if (typeof content !== 'string' || typeof expectedVersion !== 'string') return res.status(400).json({ error: 'content and expectedVersion are required' });
+  const original = read(target.file);
+  const currentVersion = fileVersion(original);
+  if (expectedVersion !== currentVersion) return res.status(409).json({ error: 'Markdown file changed elsewhere', content: original, version: currentVersion });
+  try {
+    fs.writeFileSync(target.file, content);
+    if (fs.existsSync(GRAPH)) refreshStateMarkdown(DATA);
+  } catch (error) {
+    fs.writeFileSync(target.file, original);
+    if (fs.existsSync(GRAPH)) refreshStateMarkdown(DATA);
+    throw error;
+  }
+  res.json({ ok: true, version: fileVersion(content) });
 });
 
 app.put('/api/node/:id', (req, res) => {

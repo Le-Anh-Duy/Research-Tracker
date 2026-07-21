@@ -437,6 +437,10 @@ textarea { resize: vertical; line-height: 1.5; }
   resize: vertical;
 }
 .sidebar .log-wrap { flex: 0 0 auto; display: flex; flex-direction: column; }
+.field-label-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.field-label-row label { margin-bottom: 5px; }
+.workspace-link { flex-shrink: 0; border: 0; background: none; color: var(--accent); padding: 0; cursor: pointer; font: 11px var(--sans); }
+.workspace-link:hover { text-decoration: underline; }
 .sidebar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .save-note { font-size: 11px; color: var(--ink-soft); font-style: italic; }
 .save-error, .form-error { font-size: 11.5px; color: var(--danger); margin: 0; }
@@ -616,7 +620,7 @@ textarea { resize: vertical; line-height: 1.5; }
 .wizard-option small { display: block; color: var(--ink-soft); font-size: 11.5px; margin-top: 2px; }
 
 /* ---- View tabs (top bar) ---- */
-.view-tabs { display: flex; gap: 4px; align-self: center; flex-shrink: 0; }
+.view-tabs { display: flex; flex: 0 1 760px; flex-wrap: wrap; justify-content: flex-end; gap: 4px; align-self: center; min-width: 0; }
 .view-tab {
   font-family: var(--sans);
   font-size: 12.5px;
@@ -642,6 +646,33 @@ textarea { resize: vertical; line-height: 1.5; }
   font-size: 17px;
 }
 .help-button:hover, .help-button.active { background: var(--ink); border-color: var(--ink); color: var(--panel); }
+
+/* ---- Markdown workspace ---- */
+.workspace-view { flex: 1; min-height: 0; display: grid; grid-template-columns: 280px minmax(0, 1fr); background: var(--paper); }
+.file-explorer { min-height: 0; display: flex; flex-direction: column; border-right: 1px solid var(--line); background: var(--panel); }
+.file-explorer > header { display: flex; justify-content: space-between; align-items: baseline; padding: 15px 16px 9px; }
+.file-explorer > header strong { font: 500 16px var(--serif); }
+.file-explorer > header small, .file-explorer button small { color: var(--ink-soft); font-size: 10.5px; }
+.file-explorer input[type='search'] { width: calc(100% - 24px); margin: 0 12px 10px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--input); color: var(--ink); font: 12px var(--sans); }
+.file-explorer input[type='search']:focus { outline: none; border-color: var(--accent); }
+.file-explorer nav { min-height: 0; overflow-y: auto; padding: 0 8px 12px; }
+.file-explorer button { width: 100%; display: grid; gap: 3px; padding: 8px 9px; border: 0; border-radius: 5px; background: transparent; color: var(--ink); text-align: left; cursor: pointer; }
+.file-explorer button:hover { background: var(--panel-deep); }
+.file-explorer button.active { background: var(--selected); }
+.file-explorer button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 12.5px var(--sans); }
+.file-explorer button small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--mono); }
+.markdown-editor { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.editor-head { display: flex; justify-content: space-between; gap: 20px; align-items: center; padding: 12px 18px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.editor-head h1 { margin: 0 0 3px; font: 500 18px var(--serif); }
+.editor-head small { color: var(--ink-soft); font: 10.5px var(--mono); }
+.editor-actions { display: flex; gap: 9px; align-items: center; }
+.editor-actions > span { max-width: 300px; color: var(--ink-soft); font-size: 11px; text-align: right; }
+.markdown-source { flex: 1; min-height: 0; resize: none; border: 0; border-radius: 0; padding: 24px max(28px, calc((100% - 900px) / 2)); font: 14px/1.7 var(--mono); background: var(--paper); }
+.markdown-source:focus { border: 0; box-shadow: inset 3px 0 var(--accent); }
+.markdown-source:read-only { color: var(--ink-soft); }
+.workspace-empty { max-width: 640px; margin: auto; padding: 30px; text-align: center; }
+.workspace-empty h1 { margin: 0 0 8px; font: 400 32px var(--serif); }
+.workspace-empty p { color: var(--ink-soft); }
 
 /* ---- Compass and review views ---- */
 .home-view, .compass-view, .review-view, .settings-view { flex: 1; overflow-y: auto; background: var(--paper); }

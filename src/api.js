@@ -22,6 +22,9 @@ export const putTeam = (team) => put('/api/team', team);
 export const getNode = (id) => fetch(`/api/node/${id}`).then(json);
 export const putNode = (id, content) => put(`/api/node/${id}`, { content });
 export const deleteNode = (id) => fetch(`/api/node/${id}`, { method: 'DELETE' }).then(json);
+export const getResearchFiles = () => fetch('/api/research/files').then(json);
+export const getResearchFile = (path) => fetch(`/api/research/file?path=${encodeURIComponent(path)}`).then(json);
+export const putResearchFile = (path, content, expectedVersion) => put(`/api/research/file?path=${encodeURIComponent(path)}`, { content, expectedVersion });
 export const getContext = () => fetch('/api/context').then(json);
 export const putContext = (layer, content) => put(`/api/context/${layer}`, { content });
 export const createChangeReport = (change) => fetch('/api/change-reports', {

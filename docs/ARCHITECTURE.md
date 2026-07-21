@@ -68,6 +68,7 @@ edge lists.
 | Home and team | `HomeView.jsx` |
 | Canonical graph | `Canvas.jsx`, `graphView.js` |
 | Node/edge editing and external references | `Sidebar.jsx` |
+| Full Markdown browsing and editing | `WorkspaceView.jsx`, `src/routes.js` |
 | Objectives/RQs | `CompassView.jsx`, `QuestionsView.jsx` |
 | Evidence projection | `EvidenceView.jsx` |
 | Method checks | `ReviewView.jsx` |

@@ -35,6 +35,27 @@ try {
   const exported = await request('/api/research/export');
   assert.equal(exported.filename, 'PLAN_EXPORT.md');
   assert.match(exported.content, /```mermaid\ntimeline/);
+  const markdownFiles = await request('/api/research/files');
+  assert.equal(markdownFiles.files.some((file) => file.path === 'PROJECT.md'), true);
+  assert.equal(markdownFiles.files.find((file) => file.path === 'STATE.md').readOnly, true);
+  assert.equal(markdownFiles.files.find((file) => file.path === 'nodes/project.md').title, 'Synthetic server smoke study');
+  assert.match(markdownFiles.files.find((file) => file.path.startsWith('edges/')).title, /^step: .+ → .+$/);
+  const projectFile = await request('/api/research/file?path=PROJECT.md');
+  const updatedProject = `${projectFile.content.trimEnd()}\n\nWorkspace smoke note.\n`;
+  await request('/api/research/file?path=PROJECT.md', {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content: updatedProject, expectedVersion: projectFile.version }),
+  });
+  assert.match((await request('/api/research/file?path=PROJECT.md')).content, /Workspace smoke note/);
+  await assert.rejects(() => request('/api/research/file?path=PROJECT.md', {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content: 'stale write', expectedVersion: projectFile.version }),
+  }), /409: Markdown file changed elsewhere/);
+  await assert.rejects(() => request('/api/research/file?path=..%2Foutside.md'), /400: bad Markdown path/);
+  await assert.rejects(() => request('/api/research/file?path=STATE.md', {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content: 'no', expectedVersion: 'no' }),
+  }), /403: STATE.md is generated and read-only/);
   await request('/api/team', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ members: [{ id: 'teammate', name: 'Teammate' }] }) });
   assert.equal((await request('/api/team')).members[0].id, 'teammate');
   const activity = await request('/api/git/activity');

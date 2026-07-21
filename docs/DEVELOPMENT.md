@@ -29,6 +29,7 @@ temporary `--data-dir` in tests and examples that write.
 | Lifecycle/semantic writes | `core/research-actions.js` | `research-actions.test.mjs` |
 | Init or generated context | `core/research-project.js`, `InitWizard.jsx` | `research-project.test.mjs` |
 | Home/team/tasks | `HomeView.jsx`, `Sidebar.jsx` | domain tests + build |
+| Routes/Markdown workspace | `App.jsx`, `routes.js`, `WorkspaceView.jsx`, `server.js` | routes + server smoke tests + build |
 | Map behavior | `Canvas.jsx`, `graphView.js` | `graphView.test.mjs` |
 | Timeline | `TimelineBar.jsx`, `timelineStatus.js` | timeline test |
 | HTTP | `server.js`, `src/api.js`, `docs/API.md` | tests + build |

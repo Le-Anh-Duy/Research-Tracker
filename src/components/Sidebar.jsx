@@ -23,6 +23,7 @@ export default function Sidebar({
   onMerge,
   onDelete,
   onDeleteEdge,
+  onOpenWorkspace,
   onClose,
 }) {
   const [md, setMd] = useState(null);
@@ -95,6 +96,10 @@ export default function Sidebar({
       <aside className="sidebar">
         <SidebarHeader title="Link" onClose={onClose} />
         <div className="field">
+          <label>Link name</label>
+          <input type="text" value={edge.data?.title || ''} onChange={(event) => onPatchEdge({ title: event.target.value || undefined })} placeholder="Optional name shown in Workspace" />
+        </div>
+        <div className="field">
           <label>Connection</label>
           <input type="text" readOnly value={`${nodesById[edge.source]?.data?.title || edge.source} → ${nodesById[edge.target]?.data?.title || edge.target}`} />
         </div>
@@ -163,7 +168,10 @@ export default function Sidebar({
       )}
 
       <div className="field log-wrap">
-        <label>{isSynthesis ? 'Synthesis notes' : 'Lab notes'}</label>
+        <div className="field-label-row">
+          <label>{isSynthesis ? 'Synthesis notes' : 'Lab notes'}</label>
+          <button type="button" className="workspace-link" onClick={onOpenWorkspace}>Open in Workspace →</button>
+        </div>
         <small className="field-help">Markdown · {node.id}.md · autosaves after 1 second</small>
         {md === null ? (
           <div className="save-note">Loading notes…</div>

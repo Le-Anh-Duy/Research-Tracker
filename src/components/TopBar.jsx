@@ -21,6 +21,7 @@ export default function TopBar({ context, view, onSetView, onOpenCompass, onOpen
       <nav className="view-tabs" aria-label="Primary views">
         <button className={'view-tab' + (view === 'home' ? ' active' : '')} onClick={() => onSetView('home')}>Home</button>
         <button className={'view-tab' + (view === 'map' ? ' active' : '')} onClick={() => onSetView('map')}>Map</button>
+        <button className={'view-tab' + (view === 'workspace' ? ' active' : '')} onClick={() => onSetView('workspace')}>Workspace</button>
         <button className={'view-tab' + (view === 'objectives' ? ' active' : '')} onClick={() => onSetView('objectives')}>Objectives</button>
         <button className={'view-tab' + (view === 'compass' ? ' active' : '')} onClick={onOpenCompass}>Compass</button>
         <button className={'view-tab' + (view === 'evidence' ? ' active' : '')} onClick={() => onSetView('evidence')}>Evidence</button>
